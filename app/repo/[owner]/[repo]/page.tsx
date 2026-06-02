@@ -391,12 +391,12 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                 )}
 
                 {/* Two-column: Buy + Agent */}
-                <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+                <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
                     {/* Buy */}
-                    <div className="space-y-4">
+                    <div className="flex flex-col gap-4">
                         <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Purchase</h2>
                         {entry.mode === "flat" ? (
-                            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 flex flex-col gap-4">
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 flex flex-col flex-1 gap-6">
                                 <div className="flex flex-col gap-2">
                                     <p className="text-zinc-500 text-xs uppercase tracking-widest">Full repo access</p>
                                     <p className="text-4xl font-bold text-white">{parseFloat(entry.rules[0]?.price ?? "0").toFixed(2)}</p>
@@ -423,7 +423,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                                 </div>
                             </div>
                         ) : (
-                            <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col flex-1">
                                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between gap-4">
                                     <p className="text-xs text-zinc-500">
                                         From <span className="text-white font-semibold">{lowestPrice(entry.rules)} {asset}</span> · Stellar
@@ -448,7 +448,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                                         ))}
                                     </tbody>
                                 </table>
-                                <div className="p-4 border-t border-zinc-800">
+                                <div className="p-4 border-t border-zinc-800 mt-auto">
                                     <BuyButton fullName={entry.full_name} onSuccess={fetchPurchases} />
                                     <BargainPanel fullName={entry.full_name} listingPrice={lowestPrice(entry.rules)} asset={asset} />
                                 </div>
@@ -457,9 +457,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                     </div>
 
                     {/* Agent instructions */}
-                    <div className="space-y-4">
+                    <div className="flex flex-col gap-4">
                         <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Agent Instructions</h2>
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 space-y-5">
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 space-y-5 flex-1">
                             <div className="space-y-2">
                                 <p className="text-xs text-zinc-500 uppercase tracking-widest">Gateway URL</p>
                                 <div className="flex items-center gap-2 bg-zinc-950 rounded-md px-3 py-2 border border-zinc-800 overflow-hidden">
