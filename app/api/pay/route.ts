@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         ? entry.rules.find((r) => r.path === "*")?.price ?? entry.rules[0]?.price ?? "1.00"
         : entry.rules[0]?.price ?? "1.00";
     const asset = entry.rules[0]?.asset ?? "XLM";
-    const memo = `stellar-bazgit:${full_name}`;
+    const memo = full_name.slice(0, 28);
 
     const result = await verifyStellarPayment(tx_hash, stellarAddress, price, asset, memo);
     if (!result.success) {

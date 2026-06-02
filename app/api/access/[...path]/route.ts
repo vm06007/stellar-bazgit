@@ -66,7 +66,7 @@ export async function GET(
         entry.paymentSplits?.sort((a, b) => b.share - a.share)[0]?.stellarAddress ?? "";
     const price = resolvePrice(repos, full_name, filePath);
     const asset = entry.rules[0]?.asset ?? "XLM";
-    const memo = `stellar-bazgit:${full_name}`;
+    const memo = full_name.slice(0, 28);
 
     return NextResponse.json(
         {
@@ -111,7 +111,7 @@ export async function POST(
         entry.paymentSplits?.sort((a, b) => b.share - a.share)[0]?.stellarAddress ?? "";
     const price = resolvePrice(repos, full_name, null);
     const asset = entry.rules[0]?.asset ?? "XLM";
-    const memo = `stellar-bazgit:${full_name}`;
+    const memo = full_name.slice(0, 28);
 
     const result = await verifyStellarPayment(tx_hash, stellarAddress, price, asset, memo);
     if (!result.success) {
