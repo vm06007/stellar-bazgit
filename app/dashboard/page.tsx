@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { BrandLink, SITE_HEADER_STYLE } from "@/app/components/AppLogo";
+import { BrandLink, HEADER_TITLE_CLASS, SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 import MonetizeModal, { type MonetizedEntry } from "@/app/components/MonetizeModal";
 import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
 
@@ -96,7 +96,7 @@ export default function Dashboard() {
                 <BrandLink
                     logoSize="md"
                     linkClassName="group/logo flex items-center gap-2.5"
-                    titleClassName="text-[24px] font-bold tracking-tight text-white transition-opacity duration-300 group-hover/logo:opacity-70"
+                    titleClassName={HEADER_TITLE_CLASS}
                 />
                 <ProfileDropdown session={session} />
             </header>

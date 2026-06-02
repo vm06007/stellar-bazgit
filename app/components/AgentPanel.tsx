@@ -1,10 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { AgentWalletWidget } from "./AgentWalletWidget";
 import { SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+const TEE_ICON_PATH = "/tee.png";
+
+function TeeAgentIcon({ className = "w-8 h-8" }: { className?: string }) {
+    return (
+        <Image
+            src={TEE_ICON_PATH}
+            width={300}
+            height={288}
+            alt="TEE Agent"
+            unoptimized
+            className={`shrink-0 rounded-full object-cover ${className}`.trim()}
+        />
+    );
+}
 
 const SUGGESTIONS = [
     "Browse the catalog",
@@ -107,12 +123,8 @@ export function AgentPanel({
                 style={SITE_HEADER_STYLE}
             >
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
-                        <svg className="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
-                        </svg>
-                    </div>
-                    <span className="text-sm font-medium text-zinc-200">TEE Agent</span>
+                    <TeeAgentIcon className="w-16 h-16" />
+                    <span className="text-[17px] font-bold text-zinc-200">TEE Agent</span>
                     <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-cyan-900/20 text-cyan-400 border-cyan-800/40">
                         Stellar
                     </span>
@@ -127,11 +139,7 @@ export function AgentPanel({
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                         {msg.role === "assistant" && (
-                            <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
-                                <svg className="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
-                                </svg>
-                            </div>
+                            <TeeAgentIcon className="w-8 h-8 mt-0.5 mr-2" />
                         )}
                         <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed break-all ${
                             msg.role === "user"
@@ -145,11 +153,7 @@ export function AgentPanel({
 
                 {thinking && (
                     <div className="flex justify-start">
-                        <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
-                            <svg className="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
-                            </svg>
-                        </div>
+                        <TeeAgentIcon className="w-8 h-8 mt-0.5 mr-2" />
                         <div className="bg-zinc-800/80 border border-zinc-700/50 rounded-xl px-4 py-2.5 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0ms" }} />
                             <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -204,11 +208,7 @@ export function AgentFAB({ onClick }: { onClick: () => void }) {
             onClick={onClick}
             className="fixed bottom-6 right-6 z-50 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] transition-all cursor-pointer"
         >
-            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
-                </svg>
-            </div>
+            <TeeAgentIcon className="w-7 h-7" />
             TEE Agent
         </button>
     );

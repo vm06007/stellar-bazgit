@@ -15,6 +15,9 @@ export const SITE_HEADER_STYLE = {
 const HEADER_LOGO_CLASS =
     "mt-[3px] max-h-[65px] w-auto h-auto object-contain transition-transform duration-300 group-hover/logo:scale-110";
 
+export const HEADER_TITLE_CLASS =
+    "text-[32px] font-bold tracking-tight text-white group-hover/logo:opacity-70 transition-opacity";
+
 const LOGO_SIZES = {
     hero: {
         width: LOGO_WIDTH,
@@ -68,7 +71,7 @@ export function AppLogo({
 
 export function BrandLink({
     logoSize = "sm",
-    titleClassName = "text-lg font-bold tracking-tight text-white group-hover/logo:opacity-70 transition-opacity",
+    titleClassName = HEADER_TITLE_CLASS,
     linkClassName = "group/logo flex items-center gap-2.5",
 }: {
     logoSize?: AppLogoSize;

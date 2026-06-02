@@ -22,6 +22,7 @@ The marketplace is staffed by the **🫖 TEE Agent** — your AI shopkeeper. "TE
   - [1. Selling a repo](#1-selling-a-repo)
   - [2. Buying a repo](#2-buying-a-repo)
   - [3. The payment gateway (HTTP 402)](#3-the-payment-gateway-http-402)
+  - [3b. Two payment paths: native + x402](#3b-two-payment-paths-native--standard-x402)
   - [4. The TEE Agent](#4-the-tee-agent)
   - [5. Platform fees](#5-platform-fees)
 - [Architecture](#architecture)
@@ -188,6 +189,57 @@ A real `402` response looks like:
 }
 ```
 
+### 3b. Two payment paths: native + standard x402
+
+The gateway above is our **native** flow — simple, works for both XLM and USDC, no external dependencies. Alongside it we expose a **second, standards-compliant path** that speaks the official [Stellar x402](https://developers.stellar.org/docs/build/agentic-payments/x402/quickstart-guide) wire format, so any x402-aware agent in the ecosystem can discover and pay for a repo with zero custom integration.
+
+```mermaid
+flowchart TD
+    subgraph Listing["📦 One repo listing (one Stellar payout address)"]
+        L[alice/my-toolkit · 5 USDC]
+    end
+
+    L --> Native["🟢 Native path<br/>/api/access/* + /api/pay<br/>XLM & USDC · our JSON · Horizon-verified"]
+    L --> X402["🔵 x402 path<br/>/api/x402/*<br/>USDC · official wire format · Horizon-verified"]
+
+    Native --> UI[Our UI, our TEE Agent,<br/>any custom client]
+    X402 --> Agents[Any x402-aware agent<br/>in the Stellar ecosystem]
+```
+
+Both doors lead to the same listing and the same payout address. The native path stays the default for the UI (so XLM keeps working and the demo can't break); the x402 path is **purely additive** interoperability.
+
+**How the x402 path works** (`GET /api/x402/{owner}/{repo}`):
+
+```mermaid
+sequenceDiagram
+    actor A as x402 Agent
+    participant GW as /api/x402/*
+    participant H as Stellar Horizon
+
+    A->>GW: GET (no payment)
+    GW->>A: 402 + { x402Version, accepts: [PaymentRequirements] }
+    Note over A: scheme "exact", network "stellar:testnet",<br/>asset, payTo, amount, memo
+    A->>A: Build & sign Stellar tx, base64-encode
+    A->>GW: GET with X-PAYMENT header
+    GW->>H: Submit + verify payment
+    H->>GW: Confirmed ✓
+    GW->>A: 200 + clone URL<br/>+ X-PAYMENT-RESPONSE header
+```
+
+| | Native path | x402 path |
+|---|---|---|
+| Routes | `/api/access/*`, `/api/pay`, `/api/stellar/*` | `/api/x402/[...path]` |
+| Assets | XLM **and** USDC | USDC (XLM also accepted) |
+| Wire format | custom JSON | official x402 (`accepts`, `X-PAYMENT`) |
+| Types | ours | `@x402/core` (`PaymentRequired`, `PaymentPayload`) |
+| Verification | Horizon | Horizon (no external facilitator) |
+| Used by | UI, TEE Agent, our clients | any x402-aware agent |
+
+**Design choices that keep it safe:**
+- We use the canonical `@x402/core` **types** and base64 header helpers, so the wire shape is the real spec — not an invented one.
+- We **verify settlement on Horizon ourselves** rather than depending on a live facilitator, so the path works on testnet standalone and can't be broken by an external outage.
+- It's a separate route group — if anything misbehaves, the native flow is untouched and remains the default. Full Soroban-SAC settlement via the official `x402.org` facilitator is a documented drop-in upgrade.
+
 ### 4. The TEE Agent
 
 Every page has a floating **TEE Agent** (🫖) panel. It's an LLM with tools that can browse the catalog, list/delist repos, and **purchase repos autonomously** using its own server-side Stellar wallet.
@@ -259,7 +311,8 @@ flowchart TB
     subgraph Server["⚙️ Next.js API Routes (server)"]
         Auth["/api/auth — NextAuth GitHub OAuth"]
         Monet["/api/monetize — list/delist"]
-        Access["/api/access — 402 gateway"]
+        Access["/api/access — native 402 gateway"]
+        X402R["/api/x402 — standard x402 gateway"]
         StellarTx["/api/stellar/prepare + submit"]
         Pay["/api/pay — verify payment"]
         Fees["/api/fees — platform fees"]
@@ -287,6 +340,7 @@ flowchart TB
     Auth --> GitHub
     Repos --> GitHub
     Access --> Horizon
+    X402R --> Horizon
     StellarTx --> Horizon
     Pay --> Horizon
     Fees --> Horizon
@@ -355,6 +409,7 @@ flowchart LR
 | UI | React 19, Tailwind CSS v4 |
 | Auth | NextAuth v4 + GitHub OAuth |
 | Blockchain | Stellar (`@stellar/stellar-sdk`) |
+| Agentic payments | x402 standard (`@x402/core`, `@x402/stellar`) |
 | Wallet | Freighter (`@stellar/freighter-api`) |
 | Payments | XLM + USDC on Stellar, verified via Horizon |
 | Token encryption | AES-256-GCM (Node `crypto`) |
@@ -380,6 +435,7 @@ flowchart LR
 | `/api/stellar/prepare` | POST | Public | Build unsigned purchase tx |
 | `/api/stellar/submit` | POST | Public | Submit signed tx, mint token |
 | `/api/pay` | POST | Public | Verify a tx hash, mint token |
+| `/api/x402/[...path]` | GET | Public | **Standards-compliant x402 gateway** (402 + `X-PAYMENT`) |
 | `/api/purchases` | GET | Public | Purchase history per repo |
 | `/api/bids` | GET/POST/PATCH | Mixed | Make/manage offers |
 | `/api/fees` | GET/POST | Session | Fee summary + pay fee |
