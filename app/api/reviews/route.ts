@@ -41,6 +41,6 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const review = upsertReview({ full_name, reviewer, rating: r, comment: (comment ?? "").toString().slice(0, 1000) });
+    const review = await upsertReview({ full_name, reviewer, rating: r, comment: (comment ?? "").toString().slice(0, 1000) });
     return NextResponse.json({ success: true, review, rating: getRepoRating(full_name) });
 }

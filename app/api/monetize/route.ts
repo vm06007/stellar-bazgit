@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    setRepo(full_name, {
+    await setRepo(full_name, {
         rules,
         mode: mode ?? "flat",
         owner: auth.owner,
@@ -123,7 +123,7 @@ export async function DELETE(req: NextRequest) {
     if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (entry.owner !== auth.owner) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    deleteRepo(full_name);
+    await deleteRepo(full_name);
     return NextResponse.json({ success: true });
 }
 

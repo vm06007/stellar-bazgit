@@ -83,7 +83,7 @@ export async function GET(
         return NextResponse.json({ error: result.error }, { status: 402 });
     }
 
-    addPurchase({
+    await addPurchase({
         id: crypto.randomUUID(),
         full_name,
         path: null,

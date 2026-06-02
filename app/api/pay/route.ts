@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: result.error }, { status: 402 });
     }
 
-    addPurchase({
+    await addPurchase({
         id: crypto.randomUUID(),
         full_name,
         path: null,

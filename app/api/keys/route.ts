@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const accessToken = await getAccessToken(req) ?? "";
     const { label } = await req.json();
 
-    const key = createApiKey(session.user.email, accessToken, label ?? "API key");
+    const key = await createApiKey(session.user.email, accessToken, label ?? "API key");
     return NextResponse.json({ key: key.key, label: key.label, createdAt: key.createdAt });
 }
 
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
     const { key } = await req.json();
     if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
 
-    const deleted = deleteApiKey(key, session.user.email);
+    const deleted = await deleteApiKey(key, session.user.email);
     if (!deleted) return NextResponse.json({ error: "Key not found" }, { status: 404 });
 
     return NextResponse.json({ success: true });

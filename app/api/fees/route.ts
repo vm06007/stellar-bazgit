@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const result = await verifyStellarPayment(txHash, treasury, owed.toFixed(asset === "XLM" ? 7 : 2), asset);
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 402 });
 
-    addFeePayment({
+    await addFeePayment({
         id: crypto.randomUUID(),
         owner: session.user.email,
         amount: result.amount,

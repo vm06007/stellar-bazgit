@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
     const owner = session?.user?.email;
     if (owner) {
         for (const [full_name, entry] of Object.entries(getRepos())) {
-            if (entry.owner === owner) deleteRepo(full_name);
+            if (entry.owner === owner) await deleteRepo(full_name);
         }
         for (const key of getApiKeys(owner)) {
-            deleteApiKey(key.key, owner);
+            await deleteApiKey(key.key, owner);
         }
     }
 

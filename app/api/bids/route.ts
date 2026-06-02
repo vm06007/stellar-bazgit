@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         submitted_at: new Date().toISOString(),
     };
 
-    addBid(bid);
+    await addBid(bid);
     return NextResponse.json({ success: true, id: bid.id });
 }
 
@@ -60,6 +60,6 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    updateBidStatus(id, status);
+    await updateBidStatus(id, status);
     return NextResponse.json({ success: true });
 }

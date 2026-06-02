@@ -48,19 +48,26 @@ async function redisSet(key: string, value: unknown): Promise<void> {
 
 let _initialized = false;
 
-export async function initStore(): Promise<void> {
-    if (_initialized || (globalThis as any).__storeInitialized) {
-        _initialized = true;
-        return;
-    }
+function replaceArray<T>(arr: T[], next: T[] | null | undefined): void {
+    arr.length = 0;
+    if (next) arr.push(...next);
+}
 
+export async function initStore(): Promise<void> {
     const redis = getRedis();
+
+    // Local dev (no Redis): in-memory is backed by .data/*.json files which are
+    // stable, so hydrate once.
     if (!redis) {
         _initialized = true;
         (globalThis as any).__storeInitialized = true;
         return;
     }
 
+    // Serverless (Redis configured): each request may run on a different, possibly
+    // warm instance with stale in-memory state. Redis is the source of truth, so
+    // re-hydrate from it on EVERY request. Combined with awaited writes below, this
+    // keeps every instance consistent (no more "listing gone on refresh").
     const [rRepos, rPurchases, rKeys, rBids, rFees, rReviews] = await Promise.all([
         redisGet<MonetizedReposStore>(RK_REPOS),
         redisGet<Purchase[]>(RK_PURCHASES),
@@ -70,12 +77,13 @@ export async function initStore(): Promise<void> {
         redisGet<Review[]>(RK_REVIEWS),
     ]);
 
-    if (rRepos && Object.keys(repos).length === 0) Object.assign(repos, rRepos);
-    if (rPurchases && purchases.length === 0) purchases.push(...rPurchases);
-    if (rKeys && apiKeys.length === 0) apiKeys.push(...rKeys);
-    if (rBids && bids.length === 0) bids.push(...rBids);
-    if (rFees && feePayments.length === 0) feePayments.push(...rFees);
-    if (rReviews && reviews.length === 0) reviews.push(...rReviews);
+    for (const k of Object.keys(repos)) delete repos[k];
+    if (rRepos) Object.assign(repos, rRepos);
+    replaceArray(purchases, rPurchases);
+    replaceArray(apiKeys, rKeys);
+    replaceArray(bids, rBids);
+    replaceArray(feePayments, rFees);
+    replaceArray(reviews, rReviews);
 
     _initialized = true;
     (globalThis as any).__storeInitialized = true;
@@ -204,10 +212,10 @@ const reviews: Review[] =
 
 export function getRepos(): MonetizedReposStore { return repos; }
 
-export function setRepo(full_name: string, data: MonetizedRepo): void {
+export async function setRepo(full_name: string, data: MonetizedRepo): Promise<void> {
     repos[full_name] = { ...data, ownerToken: encryptToken(data.ownerToken) };
     persist(REPOS_FILE, repos);
-    redisSet(RK_REPOS, repos);
+    await redisSet(RK_REPOS, repos);
 }
 
 export function getRepoToken(full_name: string): string {
@@ -216,24 +224,24 @@ export function getRepoToken(full_name: string): string {
     return decryptToken(entry.ownerToken);
 }
 
-export function deleteRepo(full_name: string): void {
+export async function deleteRepo(full_name: string): Promise<void> {
     delete repos[full_name];
     persist(REPOS_FILE, repos);
-    redisSet(RK_REPOS, repos);
+    await redisSet(RK_REPOS, repos);
     // Clear the repo's activity so re-listing starts with a clean slate
     // (purchases + reviews/ratings) — makes test/demo cycles repeatable.
-    clearRepoActivity(full_name);
+    await clearRepoActivity(full_name);
 }
 
 /** Remove all purchases and reviews tied to a repo (used on delist). */
-export function clearRepoActivity(full_name: string): void {
+export async function clearRepoActivity(full_name: string): Promise<void> {
     const pBefore = purchases.length;
     for (let i = purchases.length - 1; i >= 0; i--) {
         if (purchases[i].full_name === full_name) purchases.splice(i, 1);
     }
     if (purchases.length !== pBefore) {
         persist(PURCHASES_FILE, purchases);
-        redisSet(RK_PURCHASES, purchases);
+        await redisSet(RK_PURCHASES, purchases);
     }
 
     const rBefore = reviews.length;
@@ -242,7 +250,7 @@ export function clearRepoActivity(full_name: string): void {
     }
     if (reviews.length !== rBefore) {
         persist(REVIEWS_FILE, reviews);
-        redisSet(RK_REVIEWS, reviews);
+        await redisSet(RK_REVIEWS, reviews);
     }
 }
 
@@ -252,10 +260,10 @@ export function getPurchases(full_name?: string): Purchase[] {
     return full_name ? purchases.filter((p) => p.full_name === full_name) : purchases;
 }
 
-export function addPurchase(purchase: Purchase): void {
+export async function addPurchase(purchase: Purchase): Promise<void> {
     purchases.unshift(purchase);
     persist(PURCHASES_FILE, purchases);
-    redisSet(RK_PURCHASES, purchases);
+    await redisSet(RK_PURCHASES, purchases);
 }
 
 /** Has this Stellar address purchased this repo? (verified-purchase check) */
@@ -286,7 +294,7 @@ export function getMerchantRating(ownerLogin: string): Rating {
 }
 
 /** Add or update a reviewer's review for a repo (one per reviewer per repo). */
-export function upsertReview(input: { full_name: string; reviewer: string; rating: number; comment: string }): Review {
+export async function upsertReview(input: { full_name: string; reviewer: string; rating: number; comment: string }): Promise<Review> {
     const rating = Math.max(1, Math.min(5, Math.round(input.rating)));
     const existing = reviews.find((r) => r.full_name === input.full_name && r.reviewer === input.reviewer);
     if (existing) {
@@ -304,7 +312,7 @@ export function upsertReview(input: { full_name: string; reviewer: string; ratin
         });
     }
     persist(REVIEWS_FILE, reviews);
-    redisSet(RK_REVIEWS, reviews);
+    await redisSet(RK_REVIEWS, reviews);
     return reviews.find((r) => r.full_name === input.full_name && r.reviewer === input.reviewer)!;
 }
 
@@ -318,7 +326,7 @@ export function getApiKeyByValue(key: string): ApiKey | undefined {
     return apiKeys.find((k) => k.key === key);
 }
 
-export function createApiKey(owner: string, ownerToken: string, label: string): ApiKey {
+export async function createApiKey(owner: string, ownerToken: string, label: string): Promise<ApiKey> {
     const key: ApiKey = {
         key: "sbz_" + crypto.randomUUID().replace(/-/g, ""),
         owner,
@@ -328,16 +336,16 @@ export function createApiKey(owner: string, ownerToken: string, label: string): 
     };
     apiKeys.push(key);
     persist(KEYS_FILE, apiKeys);
-    redisSet(RK_KEYS, apiKeys);
+    await redisSet(RK_KEYS, apiKeys);
     return key;
 }
 
-export function deleteApiKey(key: string, owner: string): boolean {
+export async function deleteApiKey(key: string, owner: string): Promise<boolean> {
     const idx = apiKeys.findIndex((k) => k.key === key && k.owner === owner);
     if (idx === -1) return false;
     apiKeys.splice(idx, 1);
     persist(KEYS_FILE, apiKeys);
-    redisSet(RK_KEYS, apiKeys);
+    await redisSet(RK_KEYS, apiKeys);
     return true;
 }
 
@@ -356,18 +364,18 @@ export function getBidsByOwner(ownerEmail: string): Bid[] {
     return bids.filter((b) => ownerRepos.has(b.full_name));
 }
 
-export function addBid(bid: Bid): void {
+export async function addBid(bid: Bid): Promise<void> {
     bids.unshift(bid);
     persist(BIDS_FILE, bids);
-    redisSet(RK_BIDS, bids);
+    await redisSet(RK_BIDS, bids);
 }
 
-export function updateBidStatus(id: string, status: Bid["status"]): boolean {
+export async function updateBidStatus(id: string, status: Bid["status"]): Promise<boolean> {
     const bid = bids.find((b) => b.id === id);
     if (!bid) return false;
     bid.status = status;
     persist(BIDS_FILE, bids);
-    redisSet(RK_BIDS, bids);
+    await redisSet(RK_BIDS, bids);
     return true;
 }
 
@@ -381,10 +389,10 @@ export function getFeePayments(owner?: string): FeePayment[] {
     return owner ? feePayments.filter((f) => f.owner === owner) : feePayments;
 }
 
-export function addFeePayment(payment: FeePayment): void {
+export async function addFeePayment(payment: FeePayment): Promise<void> {
     feePayments.unshift(payment);
     persist(FEES_FILE, feePayments);
-    redisSet(RK_FEES, feePayments);
+    await redisSet(RK_FEES, feePayments);
 }
 
 export function getFeeSummary(owner: string): FeeSummary {
