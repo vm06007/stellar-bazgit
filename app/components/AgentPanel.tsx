@@ -129,7 +129,7 @@ export function AgentPanel({
                                 </svg>
                             </div>
                         )}
-                        <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                        <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed break-all ${
                             msg.role === "user"
                                 ? "bg-cyan-600 text-white"
                                 : "bg-zinc-800/80 text-zinc-200 border border-zinc-700/50"

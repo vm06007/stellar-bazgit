@@ -402,7 +402,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 flex flex-col flex-1 gap-6">
                                 <div className="flex flex-col gap-2">
                                     <p className="text-zinc-500 text-xs uppercase tracking-widest">Full repo access</p>
-                                    <p className="text-4xl font-bold text-white">{parseFloat(entry.rules[0]?.price ?? "0").toFixed(2)}</p>
+                                    <p className="text-4xl font-bold text-white">{parseFloat(entry.rules[0]?.price ?? "0").toFixed(2)} <span className="text-2xl font-semibold text-zinc-400">{asset}</span></p>
                                     <p className="text-zinc-400 text-sm">
                                         per access · {asset} on Stellar
                                         {entry.stellarAddress && (

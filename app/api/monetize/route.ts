@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { getRepos, setRepo, deleteRepo, getApiKeyByValue, initStore } from "@/lib/store";
+import { getRepos, setRepo, deleteRepo, getApiKeyByValue, initStore, getFeeSummary } from "@/lib/store";
 import { getAccessToken } from "@/lib/getAccessToken";
 import { isValidStellarAddress } from "@/lib/stellar";
 
@@ -52,6 +52,25 @@ export async function POST(req: NextRequest) {
     const { full_name, rules, mode, stellarAddress, paymentSplits, listing } = await req.json();
     if (!full_name || !rules?.length) {
         return NextResponse.json({ error: "Missing full_name or rules" }, { status: 400 });
+    }
+
+    // Block new listings if seller has outstanding fees above threshold
+    const isNewListing = !getRepos()[full_name];
+    if (isNewListing) {
+        const fees = getFeeSummary(auth.owner);
+        if (fees.blocked) {
+            const parts: string[] = [];
+            if (fees.xlm.blocked) parts.push(`${fees.xlm.owed.toFixed(4)} XLM`);
+            if (fees.usdc.blocked) parts.push(`${fees.usdc.owed.toFixed(2)} USDC`);
+            return NextResponse.json(
+                {
+                    error: `Outstanding platform fee of ${parts.join(" and ")} must be paid before adding new listings.`,
+                    fee_owed: { xlm: fees.xlm.owed, usdc: fees.usdc.owed },
+                    treasury_address: process.env.STELLAR_TREASURY_ADDRESS ?? null,
+                },
+                { status: 402 }
+            );
+        }
     }
 
     if (paymentSplits?.length) {

@@ -124,6 +124,7 @@ export default function Dashboard() {
                     </Link>
                 </div>
 
+                <FeePanel />
                 <BidsPanel />
                 <ApiKeysPanel />
 
@@ -484,6 +485,172 @@ function BidsPanel() {
                                 ))}
                             </div>
                         )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+type FeeSummaryAsset = { earned: number; paid: number; owed: number; threshold: number; blocked: boolean };
+type FeeSummaryData = { xlm: FeeSummaryAsset; usdc: FeeSummaryAsset; blocked: boolean; treasury_address: string | null };
+
+type FeePayStep = "idle" | "connecting" | "building" | "signing" | "submitting" | "done";
+
+function FeePanel() {
+    const [open, setOpen] = useState(false);
+    const [fees, setFees] = useState<FeeSummaryData | null>(null);
+    const [payAsset, setPayAsset] = useState<"XLM" | "USDC">("XLM");
+    const [step, setStep] = useState<FeePayStep>("idle");
+
+    async function load() {
+        fetch("/api/fees").then(r => r.json()).then(setFees).catch(() => {});
+    }
+
+    useEffect(() => { load(); }, []);
+
+    async function payWithFreighter() {
+        try {
+            setStep("connecting");
+            const { isConnected, requestAccess } = await import("@stellar/freighter-api");
+            const { isConnected: connected } = await isConnected();
+            if (!connected) {
+                toast.error("Freighter wallet not installed — get it at freighter.app", { duration: 7000 });
+                setStep("idle"); return;
+            }
+            const { address: publicKey, error: accessError } = await requestAccess();
+            if (accessError || !publicKey) throw new Error("Wallet connection rejected");
+
+            setStep("building");
+            const prepareRes = await fetch("/api/fees/prepare", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ buyer_address: publicKey, asset: payAsset }),
+            });
+            const prepareData = await prepareRes.json();
+            if (!prepareRes.ok) throw new Error(prepareData.error ?? "Failed to build transaction");
+
+            setStep("signing");
+            const { signTransaction } = await import("@stellar/freighter-api");
+            const signResult = await signTransaction(prepareData.xdr, { networkPassphrase: prepareData.network_passphrase });
+            if ((signResult as any).error || !(signResult as any).signedTxXdr) throw new Error("Transaction signing cancelled");
+
+            setStep("submitting");
+            const submitRes = await fetch("/api/fees", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ signed_xdr: (signResult as any).signedTxXdr, asset: payAsset }),
+            });
+            const submitData = await submitRes.json();
+            if (!submitRes.ok) throw new Error(submitData.error ?? "Fee payment failed");
+
+            setStep("done");
+            toast.success(`Platform fee paid: ${submitData.amount} ${submitData.asset}`);
+            await load();
+            setTimeout(() => setStep("idle"), 3000);
+        } catch (e: any) {
+            const msg: string = e?.message ?? "";
+            if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("reject")) toast.error("Signature cancelled");
+            else toast.error(msg || "Fee payment failed");
+            setStep("idle");
+        }
+    }
+
+    const hasAnyEarnings = fees && (fees.xlm.earned > 0 || fees.usdc.earned > 0);
+    const hasOwed = fees && (fees.xlm.owed > 0 || fees.usdc.owed > 0);
+
+    if (!hasAnyEarnings) return null;
+
+    const stepLabels: Record<FeePayStep, string> = {
+        idle: `Pay ${payAsset} fee with Freighter`,
+        connecting: "Connecting wallet…",
+        building: "Building transaction…",
+        signing: "Sign in wallet…",
+        submitting: "Submitting to Stellar…",
+        done: "Fee paid!",
+    };
+    const busy = step !== "idle" && step !== "done";
+
+    return (
+        <div className={`mb-4 rounded-lg border ${fees?.blocked ? "border-red-900 bg-red-950/10" : "border-zinc-800"} bg-zinc-900`}>
+            <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 w-full px-4 py-3 text-left cursor-pointer">
+                <span className="text-zinc-500 text-xs transition-transform duration-150" style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Platform Fees</span>
+                {fees?.blocked && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-900/40 text-red-400 border border-red-800/60 font-medium">blocked — fee owed</span>
+                )}
+                {!fees?.blocked && hasOwed && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700 font-medium">0.5% of earnings</span>
+                )}
+            </button>
+
+            {open && fees && (
+                <div className="border-t border-zinc-800 px-4 py-4 space-y-4">
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                        Stellar Bazgit charges a <span className="text-zinc-300 font-medium">0.5% platform fee</span> on seller earnings.
+                        Fees above the threshold must be paid before adding new listings.
+                    </p>
+
+                    <div className="rounded-md border border-zinc-800 overflow-hidden">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="border-b border-zinc-800 bg-zinc-800/40">
+                                    <th className="text-left px-3 py-2 text-zinc-500 font-medium">Asset</th>
+                                    <th className="text-right px-3 py-2 text-zinc-500 font-medium">Earned</th>
+                                    <th className="text-right px-3 py-2 text-zinc-500 font-medium">Fee (0.5%)</th>
+                                    <th className="text-right px-3 py-2 text-zinc-500 font-medium">Paid</th>
+                                    <th className="text-right px-3 py-2 text-zinc-500 font-medium">Owed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(["xlm", "usdc"] as const).map(asset => {
+                                    const f = fees[asset];
+                                    if (f.earned === 0) return null;
+                                    const decimals = asset === "xlm" ? 4 : 2;
+                                    return (
+                                        <tr key={asset} className="border-b border-zinc-800/50 last:border-0">
+                                            <td className="px-3 py-2 text-zinc-300 font-medium">{asset.toUpperCase()}</td>
+                                            <td className="px-3 py-2 text-right text-zinc-400">{f.earned.toFixed(decimals)}</td>
+                                            <td className="px-3 py-2 text-right text-zinc-400">{(f.earned * 0.005).toFixed(decimals)}</td>
+                                            <td className="px-3 py-2 text-right text-zinc-400">{f.paid.toFixed(decimals)}</td>
+                                            <td className={`px-3 py-2 text-right font-semibold ${f.blocked ? "text-red-400" : f.owed > 0 ? "text-amber-400" : "text-zinc-500"}`}>
+                                                {f.owed > 0 ? f.owed.toFixed(decimals) : "—"}
+                                                {f.blocked && <span className="ml-1 text-[10px] font-normal">⚠ blocked</span>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {hasOwed && (
+                        <div className="space-y-3">
+                            {/* Asset selector — only show assets with owed balance */}
+                            {fees.xlm.owed > 0 && fees.usdc.owed > 0 && (
+                                <div className="flex rounded-lg bg-zinc-800 p-0.5 gap-0.5 w-fit">
+                                    {(["XLM", "USDC"] as const).map(a => (
+                                        <button key={a} type="button" onClick={() => setPayAsset(a)}
+                                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${payAsset === a ? "bg-zinc-600 text-white" : "text-zinc-400 hover:text-zinc-200"}`}>
+                                            {a}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button onClick={payWithFreighter} disabled={busy}
+                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-semibold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:cursor-not-allowed">
+                                {busy && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />}
+                                {step === "done" ? "✓ " : ""}{stepLabels[step]}
+                            </button>
+                            <p className="text-xs text-zinc-600 text-center">
+                                Requires <a href="https://www.freighter.app" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-cyan-400 underline transition-colors">Freighter</a> — one click, no copy-paste
+                            </p>
+                        </div>
+                    )}
+
+                    {!fees.treasury_address && (
+                        <p className="text-xs text-red-400">STELLAR_TREASURY_ADDRESS not configured — contact the platform operator.</p>
+                    )}
                 </div>
             )}
         </div>
