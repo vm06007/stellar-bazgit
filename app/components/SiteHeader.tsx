@@ -43,11 +43,13 @@ function ProfileDropdown() {
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="group flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="group flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer"
             >
                 {session.user?.image && (
-                    <Image src={session.user.image} alt={session.user.name ?? "avatar"} width={28} height={28}
-                        className="rounded-full border border-zinc-700" />
+                    <div className="w-11 h-11 rounded-full overflow-hidden border border-zinc-700 shrink-0">
+                        <Image src={session.user.image} alt={session.user.name ?? "avatar"} width={44} height={44}
+                            className="rounded-full transition-transform duration-300 group-hover:scale-125" />
+                    </div>
                 )}
                 <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors hidden sm:block">
                     {session.user?.name}

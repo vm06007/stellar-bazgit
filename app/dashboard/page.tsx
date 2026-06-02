@@ -192,9 +192,9 @@ function ProfileDropdown({ session }: { session: ReturnType<typeof useSession>["
             <button onClick={() => setOpen((o) => !o)}
                 className="group flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer self-stretch">
                 {session?.user?.image && (
-                    <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
-                        <Image src={session.user.image} alt={session.user.name ?? "avatar"} width={40} height={40}
-                            className="rounded-full transition-transform duration-300 group-hover:scale-110" />
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
+                        <Image src={session.user.image} alt={session.user.name ?? "avatar"} width={48} height={48}
+                            className="rounded-full transition-transform duration-300 group-hover:scale-125" />
                     </div>
                 )}
                 <span className="text-sm font-medium text-zinc-500 group-hover:text-white transition-colors">
