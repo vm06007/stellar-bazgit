@@ -250,8 +250,19 @@ function ProfileDropdown({ session }: { session: ReturnType<typeof useSession>["
                         </button>
                         <button
                             onClick={async () => {
-                                if (!confirm("This will remove Stellar Bazgit from your GitHub authorized apps. Continue?")) return;
-                                await fetch("/api/revoke", { method: "POST" });
+                                if (!confirm("This will remove Stellar Bazgit from your GitHub authorized apps and unlist your repos. You'll re-approve on GitHub next sign-in. Continue?")) return;
+                                try {
+                                    const res = await fetch("/api/revoke", { method: "POST" });
+                                    if (!res.ok) {
+                                        const d = await res.json().catch(() => ({}));
+                                        toast.error(d.error ?? "Failed to revoke GitHub access");
+                                        return;
+                                    }
+                                    toast.success("GitHub access revoked — signing out");
+                                } catch {
+                                    toast.error("Network error revoking access");
+                                    return;
+                                }
                                 signOut({ callbackUrl: "/" });
                             }}
                             className="flex w-full items-start gap-3 px-4 py-2.5 hover:bg-red-950/40 transition-colors cursor-pointer group/revoke">

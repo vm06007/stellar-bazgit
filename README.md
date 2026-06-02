@@ -563,6 +563,34 @@ bun run start    # serve production build
 
 ---
 
+## Deploying to Production
+
+See `.env.production.example` for the full template. Production differs from dev in three important ways:
+
+**1. A separate GitHub OAuth App.** Create a *new* app (don't reuse the dev one) at [github.com/settings/developers](https://github.com/settings/developers):
+
+| Field | Value |
+|-------|-------|
+| Homepage URL | `https://your-domain.com` |
+| Authorization callback URL | `https://your-domain.com/api/auth/callback/github` |
+
+Then *Generate a new client secret* and set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`.
+
+**2. Fresh secrets** (never reuse dev values):
+
+```bash
+openssl rand -base64 32   # → NEXTAUTH_SECRET
+openssl rand -hex 32      # → TOKEN_ENCRYPTION_KEY  (64 hex chars)
+```
+
+`NEXTAUTH_URL` must be the exact public URL (`https://your-domain.com`). Changing `TOKEN_ENCRYPTION_KEY` later makes already-stored GitHub tokens unreadable.
+
+**3. Redis is required.** Serverless filesystems are ephemeral, so the `.data/*.json` fallback won't persist between requests. Create a free [Upstash](https://console.upstash.com) database and set `KV_REST_API_URL` + `KV_REST_API_TOKEN`. All state (listings, purchases, reviews, fees, API keys, agent wallet) then lives in Redis.
+
+Set `STELLAR_NETWORK` / `NEXT_PUBLIC_STELLAR_NETWORK` to `mainnet` for real payments, and point `STELLAR_TREASURY_ADDRESS` at your fee-collection account. The full production checklist lives in `.env.production.example`.
+
+---
+
 ## Security Model
 
 ```mermaid

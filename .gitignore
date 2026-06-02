@@ -1,6 +1,12 @@
 .next/
 node_modules/
+# Secrets — ignore all env files except the *.example templates
+.env
 .env.local
+.env.*.local
+.env.production
+.env.development
+!.env*.example
 .data/
 *.tmp
 /clone
