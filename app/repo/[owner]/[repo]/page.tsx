@@ -9,7 +9,7 @@ import ReactMarkdown from "react-markdown";
 import BuyButton from "@/app/components/BuyButton";
 import MonetizeModal, { type ExistingEntry } from "@/app/components/MonetizeModal";
 import { SiteHeader } from "@/app/components/SiteHeader";
-import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
+import { AgentPanel, AgentFAB, getRepoAgentGreeting, getRepoAgentSuggestions } from "@/app/components/AgentPanel";
 import { shortStellarAddress } from "@/lib/stellar";
 
 type CatalogEntry = {
@@ -590,6 +590,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
             <AgentPanel
                 onClose={() => setAgentOpen(false)}
                 context={{ repos: [{ full_name, name: entry.name, private: true }] }}
+                suggestions={getRepoAgentSuggestions(entry.name)}
+                initialMessage={getRepoAgentGreeting(entry.name)}
+                inputPlaceholder="Ask about buying this repo…"
             />
         )}
         {!agentOpen && <AgentFAB onClick={() => setAgentOpen(true)} />}

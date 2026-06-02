@@ -8,7 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BrandLink, HEADER_TITLE_CLASS, SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 import MonetizeModal, { type MonetizedEntry } from "@/app/components/MonetizeModal";
-import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
+import { AgentPanel, AgentFAB, DASHBOARD_AGENT_GREETING, DASHBOARD_AGENT_SUGGESTIONS } from "@/app/components/AgentPanel";
 
 type Repo = {
     id: number;
@@ -159,6 +159,9 @@ export default function Dashboard() {
             <AgentPanel
                 onClose={() => setAgentOpen(false)}
                 context={agentContext}
+                suggestions={DASHBOARD_AGENT_SUGGESTIONS}
+                initialMessage={DASHBOARD_AGENT_GREETING}
+                inputPlaceholder="Ask about listing, pricing, or your repos…"
                 onRefresh={() => fetch("/api/monetize").then(r => r.json()).then(d => {
                     if (!Array.isArray(d)) return;
                     const map: Record<string, MonetizedEntry> = {};

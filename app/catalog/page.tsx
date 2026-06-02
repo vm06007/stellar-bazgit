@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/app/components/SiteHeader";
-import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
+import { AgentPanel, AgentFAB, CATALOG_AGENT_GREETING, CATALOG_AGENT_SUGGESTIONS } from "@/app/components/AgentPanel";
 
 type CatalogEntry = {
     full_name: string;
@@ -53,6 +53,8 @@ function SkeletonCard() {
 function ApiPanel() {
     const [open, setOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [mcpOpen, setMcpOpen] = useState(false);
+    const [copiedMcp, setCopiedMcp] = useState(false);
     const origin = typeof window !== "undefined" ? window.location.origin : "https://stellar-bazgit.app";
 
     const snippet = `# All listed repos
@@ -64,8 +66,24 @@ GET ${origin}/api/catalog?owner=alice
 # Single repo
 GET ${origin}/api/catalog?repo=alice/my-repo
 
-# Payment gateway — returns 402 with Stellar details
-GET ${origin}/api/access/alice/my-repo`;
+# Native gateway — 402 with Stellar payment details
+GET ${origin}/api/access/alice/my-repo
+
+# Standard x402 gateway — pay with the X-PAYMENT header
+GET ${origin}/api/x402/alice/my-repo`;
+
+    const mcpSnippet = `{
+  "mcpServers": {
+    "stellar-bazgit": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/stellar-bazgit/mcp/server.ts"],
+      "env": {
+        "GITHUB_TOKEN": "ghp_yourToken",
+        "BAZGIT_URL": "${origin}"
+      }
+    }
+  }
+}`;
 
     return (
         <div className="mb-8 rounded-lg border border-zinc-800 bg-zinc-900">
@@ -95,12 +113,63 @@ GET ${origin}/api/access/alice/my-repo`;
                         <pre className="px-3 py-3 text-[11px] text-zinc-400 font-mono leading-relaxed overflow-x-auto whitespace-pre">{snippet}</pre>
                     </div>
                     <p className="text-xs text-zinc-600">
-                        The 402 response includes <code className="text-zinc-500 bg-zinc-800 px-1 rounded">stellar_address</code>,{" "}
+                        <span className="text-zinc-400 font-medium">Native path:</span> the 402 response includes{" "}
+                        <code className="text-zinc-500 bg-zinc-800 px-1 rounded">stellar_address</code>,{" "}
                         <code className="text-zinc-500 bg-zinc-800 px-1 rounded">amount</code>,{" "}
-                        <code className="text-zinc-500 bg-zinc-800 px-1 rounded">asset</code>, and{" "}
+                        <code className="text-zinc-500 bg-zinc-800 px-1 rounded">asset</code>,{" "}
                         <code className="text-zinc-500 bg-zinc-800 px-1 rounded">memo</code> — POST the tx hash to{" "}
-                        <code className="text-zinc-500 bg-zinc-800 px-1 rounded">/api/pay</code> to receive a 1-hour clone token.
+                        <code className="text-zinc-500 bg-zinc-800 px-1 rounded">/api/pay</code> for a 1-hour clone token.
                     </p>
+                    <p className="text-xs text-zinc-600">
+                        <span className="text-cyan-400 font-medium">x402 path:</span> the <code className="text-zinc-500 bg-zinc-800 px-1 rounded">/api/x402/…</code> gateway speaks the official{" "}
+                        <a href="https://developers.stellar.org/docs/build/agentic-payments/x402/quickstart-guide" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:text-cyan-300 underline">Stellar x402</a>{" "}
+                        wire format (<code className="text-zinc-500 bg-zinc-800 px-1 rounded">accepts</code> + <code className="text-zinc-500 bg-zinc-800 px-1 rounded">X-PAYMENT</code> header) — any x402-aware agent can pay with zero custom integration.
+                    </p>
+
+                    {/* MCP sub-section */}
+                    <div className="rounded-md border border-zinc-800 overflow-hidden">
+                        <button onClick={() => setMcpOpen(v => !v)}
+                            className="flex items-center gap-2 w-full px-3 py-2.5 text-left bg-zinc-900 hover:bg-zinc-800/60 transition-colors cursor-pointer">
+                            <span className="text-zinc-500 text-[10px] transition-transform duration-150" style={{ display: "inline-block", transform: mcpOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+                            <span className="text-xs font-semibold text-zinc-400">Use with Claude Desktop (MCP)</span>
+                            <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full bg-violet-900/40 text-violet-400 border border-violet-800/60 font-medium">MCP</span>
+                        </button>
+                        {mcpOpen && (
+                            <div className="border-t border-zinc-800 px-3 py-3 space-y-3 bg-zinc-950/50">
+                                <p className="text-xs text-zinc-400 leading-relaxed">
+                                    Connect Stellar Bazgit to <span className="text-zinc-200 font-medium">Claude Desktop</span> via MCP — browse the catalog and manage listings without leaving the chat.
+                                </p>
+                                <ul className="text-xs text-zinc-500 space-y-1 pl-3">
+                                    {([
+                                        ["browse_catalog", "list all repos for sale"],
+                                        ["get_repo", "details + Stellar address & x402 gateway"],
+                                        ["list_my_repos", "your GitHub repos (needs token)"],
+                                        ["get_my_listings", "your active listings"],
+                                        ["monetize_repo", "list a repo (XLM or USDC)"],
+                                        ["delist_repo", "remove a listing"],
+                                    ] as [string, string][]).map(([name, desc]) => (
+                                        <li key={name} className="flex items-baseline gap-2">
+                                            <code className="text-violet-400 shrink-0">{name}</code>
+                                            <span className="text-zinc-600">— {desc}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <div className="rounded-md bg-zinc-950 border border-zinc-800 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-800">
+                                        <span className="text-xs text-zinc-600 font-mono">claude_desktop_config.json</span>
+                                        <button onClick={() => { navigator.clipboard.writeText(mcpSnippet); setCopiedMcp(true); setTimeout(() => setCopiedMcp(false), 1500); }}
+                                            className="text-xs text-zinc-600 hover:text-zinc-300 cursor-pointer transition-colors">
+                                            {copiedMcp ? "Copied!" : "Copy"}
+                                        </button>
+                                    </div>
+                                    <pre className="px-3 py-3 text-[11px] text-zinc-400 font-mono leading-relaxed overflow-x-auto whitespace-pre">{mcpSnippet}</pre>
+                                </div>
+                                <p className="text-xs text-zinc-600">
+                                    Clone the repo, run <code className="text-zinc-500 bg-zinc-800 px-1 rounded">bun install</code> in <code className="text-zinc-500 bg-zinc-800 px-1 rounded">mcp/</code>, then restart Claude Desktop.
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
@@ -261,7 +330,13 @@ export default function CatalogPage() {
                 )}
             </main>
         </div>
-        {agentOpen && <AgentPanel onClose={() => setAgentOpen(false)} />}
+        {agentOpen && (
+            <AgentPanel
+                onClose={() => setAgentOpen(false)}
+                suggestions={CATALOG_AGENT_SUGGESTIONS}
+                initialMessage={CATALOG_AGENT_GREETING}
+            />
+        )}
         {!agentOpen && <AgentFAB onClick={() => setAgentOpen(true)} />}
         </div>
     );

@@ -22,11 +22,35 @@ function TeeAgentIcon({ className = "w-8 h-8" }: { className?: string }) {
     );
 }
 
-const SUGGESTIONS = [
-    "Browse the catalog",
+export const CATALOG_AGENT_SUGGESTIONS = [
+    "Find repos under 10 XLM",
+    "Buy a repo from the catalog",
     "What can you help with?",
-    "How do I sell a repo?",
 ];
+
+export const DASHBOARD_AGENT_SUGGESTIONS = [
+    "List one of my private repos",
+    "Delist a repo I'm selling",
+    "Which repos am I already selling?",
+];
+
+export function getRepoAgentSuggestions(repoName: string) {
+    return [
+        `Buy ${repoName}`,
+        "What's included in this listing?",
+        "Find repos under 10 XLM",
+    ];
+}
+
+export const CATALOG_AGENT_GREETING =
+    "Hi! I'm TEE Agent — I can help you browse the catalog, find repos by price, and purchase them with XLM or USDC.";
+
+export const DASHBOARD_AGENT_GREETING =
+    "Hi! I'm TEE Agent — I can help you list or delist repos, set prices, and manage your Stellar Bazgit catalog.";
+
+export function getRepoAgentGreeting(repoName: string) {
+    return `Hi! I'm TEE Agent — I can help you buy ${repoName}, explain the listing, or find similar repos in the catalog.`;
+}
 
 const CLONE_REGEX = /(GIT_TERMINAL_PROMPT=0 git clone "[^"]*"|git clone '[^']*')/g;
 
@@ -70,13 +94,19 @@ export function AgentPanel({
     onClose,
     context,
     onRefresh,
+    suggestions = CATALOG_AGENT_SUGGESTIONS,
+    initialMessage = CATALOG_AGENT_GREETING,
+    inputPlaceholder = "Ask about repos, pricing, or catalog…",
 }: {
     onClose: () => void;
     context?: Record<string, unknown>;
     onRefresh?: () => void;
+    suggestions?: string[];
+    initialMessage?: string;
+    inputPlaceholder?: string;
 }) {
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { role: "assistant", content: "Hi! I'm TEE Agent — I can help you browse the catalog, find repos, purchase them with XLM or USDC, or answer questions about Stellar Bazgit." },
+        { role: "assistant", content: initialMessage },
     ]);
     const [input, setInput] = useState("");
     const [thinking, setThinking] = useState(false);
@@ -116,7 +146,7 @@ export function AgentPanel({
     }
 
     return (
-        <aside className="w-[360px] flex flex-col border-l border-zinc-800 bg-zinc-950 shrink-0">
+        <aside className="w-[450px] flex flex-col border-l border-zinc-800 bg-zinc-950 shrink-0">
             {/* Header */}
             <div
                 className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 overflow-hidden"
@@ -126,7 +156,7 @@ export function AgentPanel({
                     <TeeAgentIcon className="w-16 h-16" />
                     <span className="text-[17px] font-bold text-zinc-200">TEE Agent</span>
                     <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-cyan-900/20 text-cyan-400 border-cyan-800/40">
-                        Stellar
+                        Stellar Testnet
                     </span>
                 </div>
                 <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer text-lg leading-none">✕</button>
@@ -141,7 +171,7 @@ export function AgentPanel({
                         {msg.role === "assistant" && (
                             <TeeAgentIcon className="w-8 h-8 mt-0.5 mr-2" />
                         )}
-                        <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed break-all ${
+                        <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed break-words ${
                             msg.role === "user"
                                 ? "bg-cyan-600 text-white"
                                 : "bg-zinc-800/80 text-zinc-200 border border-zinc-700/50"
@@ -167,7 +197,7 @@ export function AgentPanel({
             {/* Suggestion chips */}
             {messages.length <= 1 && (
                 <div className="px-4 pb-3 flex flex-wrap gap-2">
-                    {SUGGESTIONS.map(s => (
+                    {suggestions.map(s => (
                         <button key={s} onClick={() => send(s)}
                             className="text-xs px-3 py-1.5 rounded-full border border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors cursor-pointer">
                             {s}
@@ -184,7 +214,7 @@ export function AgentPanel({
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                        placeholder="Ask about repos, pricing, or catalog…"
+                        placeholder={inputPlaceholder}
                         rows={1}
                         className="flex-1 resize-none bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none max-h-32"
                         style={{ fieldSizing: "content" } as React.CSSProperties}

@@ -469,7 +469,10 @@ stellar-bazgit-hack/
 │   ├── store.ts                    # State: listings, purchases, fees, bids
 │   ├── store-crypto.ts             # AES-256-GCM token encryption
 │   ├── stellar.ts                  # Client-safe Stellar helpers + verification
-│   └── stellar-server.ts           # Server-only SDK re-exports
+│   ├── stellar-server.ts           # Server-only SDK re-exports
+│   └── x402.ts                     # x402 wire-format helpers (@x402/core types)
+├── mcp/
+│   └── server.ts                   # MCP server for Claude Desktop (stdio)
 └── .data/                          # JSON persistence (gitignored)
 ```
 
