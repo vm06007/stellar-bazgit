@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import MonetizeModal, { type MonetizedEntry } from "@/app/components/MonetizeModal";
+import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
 
 type Repo = {
     id: number;
@@ -26,6 +27,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [monetizing, setMonetizing] = useState<Repo | null>(null);
     const [monetizedMap, setMonetizedMap] = useState<Record<string, MonetizedEntry>>({});
+    const [agentOpen, setAgentOpen] = useState(false);
 
     function handleMadePrivate(id: number) {
         setRepos((prev) => prev.map((r) => (r.id === id ? { ...r, private: true } : r)));
@@ -78,8 +80,14 @@ export default function Dashboard() {
     const privateRepos = safeRepos.filter((r) => r.private);
     const publicRepos = safeRepos.filter((r) => !r.private);
 
+    const agentContext = {
+        repos: safeRepos.map(r => ({ name: r.name, full_name: r.full_name, private: r.private })),
+        listings: Object.values(monetizedMap).map(m => ({ full_name: m.full_name, rules: m.rules, mode: m.mode })),
+    };
+
     return (
-        <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+        <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+        <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <header className="sticky top-0 z-10 flex items-stretch justify-between border-b border-zinc-800 px-6 bg-zinc-950">
                 <Link href="/" className="group/logo flex items-center gap-2.5 py-4">
                     <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-md shadow-indigo-500/20">
@@ -146,6 +154,21 @@ export default function Dashboard() {
                     onSaved={(entry) => handleMonetized(monetizing.full_name, entry)}
                 />
             )}
+        </div>
+
+        {agentOpen && (
+            <AgentPanel
+                onClose={() => setAgentOpen(false)}
+                context={agentContext}
+                onRefresh={() => fetch("/api/monetize").then(r => r.json()).then(d => {
+                    if (!Array.isArray(d)) return;
+                    const map: Record<string, MonetizedEntry> = {};
+                    for (const e of d) map[e.full_name] = e;
+                    setMonetizedMap(map);
+                })}
+            />
+        )}
+        {!agentOpen && <AgentFAB onClick={() => setAgentOpen(true)} />}
         </div>
     );
 }

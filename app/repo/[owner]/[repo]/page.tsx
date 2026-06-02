@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import BuyButton from "@/app/components/BuyButton";
 import MonetizeModal, { type ExistingEntry } from "@/app/components/MonetizeModal";
 import { SiteHeader } from "@/app/components/SiteHeader";
+import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
 import { shortStellarAddress } from "@/lib/stellar";
 
 type CatalogEntry = {
@@ -227,6 +228,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
     const [ownerProfile, setOwnerProfile] = useState<GitHubUser | null>(null);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [editOpen, setEditOpen] = useState(false);
+    const [agentOpen, setAgentOpen] = useState(false);
 
     function fetchPurchases() {
         fetch(`/api/purchases?repo=${encodeURIComponent(full_name)}`)
@@ -281,7 +283,8 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
         : null;
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white">
+        <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+        <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <SiteHeader right={
                 <Link href="/catalog" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">← Catalog</Link>
             } />
@@ -582,6 +585,14 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                     }}
                 />
             )}
+        </div>
+        {agentOpen && (
+            <AgentPanel
+                onClose={() => setAgentOpen(false)}
+                context={{ repos: [{ full_name, name: entry.name, private: true }] }}
+            />
+        )}
+        {!agentOpen && <AgentFAB onClick={() => setAgentOpen(true)} />}
         </div>
     );
 }

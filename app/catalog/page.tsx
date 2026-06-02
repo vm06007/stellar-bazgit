@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/app/components/SiteHeader";
+import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
 
 type CatalogEntry = {
     full_name: string;
@@ -111,6 +112,7 @@ export default function CatalogPage() {
     const [loading, setLoading] = useState(true);
     const [ownerProfiles, setOwnerProfiles] = useState<Record<string, OwnerProfile>>({});
     const [search, setSearch] = useState("");
+    const [agentOpen, setAgentOpen] = useState(false);
 
     useEffect(() => {
         fetch("/api/catalog")
@@ -146,7 +148,8 @@ export default function CatalogPage() {
         : entries;
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white">
+        <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+        <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <SiteHeader right={
                 <Link href="/catalog" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">Catalog</Link>
             } />
@@ -257,6 +260,9 @@ export default function CatalogPage() {
                     </p>
                 )}
             </main>
+        </div>
+        {agentOpen && <AgentPanel onClose={() => setAgentOpen(false)} />}
+        {!agentOpen && <AgentFAB onClick={() => setAgentOpen(true)} />}
         </div>
     );
 }
