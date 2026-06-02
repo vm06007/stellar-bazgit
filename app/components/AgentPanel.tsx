@@ -24,7 +24,7 @@ function TeeAgentIcon({ className = "w-8 h-8" }: { className?: string }) {
 
 export const CATALOG_AGENT_SUGGESTIONS = [
     "Find repos under 10 XLM",
-    "Buy a repo from the catalog",
+    "Buy a repo from the bazaar",
     "What can you help with?",
 ];
 
@@ -43,13 +43,13 @@ export function getRepoAgentSuggestions(repoName: string) {
 }
 
 export const CATALOG_AGENT_GREETING =
-    "Hi! I'm TEE Agent — I can help you browse the catalog, find repos by price, and purchase them with XLM or USDC.";
+    "Hi! I'm TEE Agent — I can help you browse the bazaar, find repos by price, and purchase them with XLM or USDC.";
 
 export const DASHBOARD_AGENT_GREETING =
-    "Hi! I'm TEE Agent — I can help you list or delist repos, set prices, and manage your Stellar Bazgit catalog.";
+    "Hi! I'm TEE Agent — I can help you list or delist repos, set prices, and manage your Stellar Bazgit bazaar.";
 
 export function getRepoAgentGreeting(repoName: string) {
-    return `Hi! I'm TEE Agent — I can help you buy ${repoName}, explain the listing, or find similar repos in the catalog.`;
+    return `Hi! I'm TEE Agent — I can help you buy ${repoName}, explain the listing, or find similar repos in the bazaar.`;
 }
 
 const CLONE_REGEX = /(GIT_TERMINAL_PROMPT=0 git clone "[^"]*"|git clone '[^']*')/g;
@@ -96,7 +96,7 @@ export function AgentPanel({
     onRefresh,
     suggestions = CATALOG_AGENT_SUGGESTIONS,
     initialMessage = CATALOG_AGENT_GREETING,
-    inputPlaceholder = "Ask about repos, pricing, or catalog…",
+    inputPlaceholder = "Ask about repos, pricing, or bazaar…",
 }: {
     onClose: () => void;
     context?: Record<string, unknown>;

@@ -71,10 +71,10 @@ export default function Home() {
                             Go to Dashboard
                         </Link>
                         <Link
-                            href="/catalog"
+                            href="/bazaar"
                             className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-300 transition-all hover:border-zinc-500 hover:text-white active:scale-95"
                         >
-                            Browse Catalog
+                            Browse Bazaar
                         </Link>
                     </div>
                 ) : (

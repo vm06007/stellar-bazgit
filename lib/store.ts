@@ -11,12 +11,14 @@ const PURCHASES_FILE = path.join(DATA_DIR, "purchases.json");
 const KEYS_FILE = path.join(DATA_DIR, "api-keys.json");
 const BIDS_FILE = path.join(DATA_DIR, "bids.json");
 const FEES_FILE = path.join(DATA_DIR, "fee-payments.json");
+const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
 
 const RK_REPOS = "stellar-bazgit:repos";
 const RK_PURCHASES = "stellar-bazgit:purchases";
 const RK_KEYS = "stellar-bazgit:api-keys";
 const RK_BIDS = "stellar-bazgit:bids";
 const RK_FEES = "stellar-bazgit:fee-payments";
+const RK_REVIEWS = "stellar-bazgit:reviews";
 
 let _redis: Redis | null = null;
 function getRedis(): Redis | null {
@@ -59,12 +61,13 @@ export async function initStore(): Promise<void> {
         return;
     }
 
-    const [rRepos, rPurchases, rKeys, rBids, rFees] = await Promise.all([
+    const [rRepos, rPurchases, rKeys, rBids, rFees, rReviews] = await Promise.all([
         redisGet<MonetizedReposStore>(RK_REPOS),
         redisGet<Purchase[]>(RK_PURCHASES),
         redisGet<ApiKey[]>(RK_KEYS),
         redisGet<Bid[]>(RK_BIDS),
         redisGet<FeePayment[]>(RK_FEES),
+        redisGet<Review[]>(RK_REVIEWS),
     ]);
 
     if (rRepos && Object.keys(repos).length === 0) Object.assign(repos, rRepos);
@@ -72,6 +75,7 @@ export async function initStore(): Promise<void> {
     if (rKeys && apiKeys.length === 0) apiKeys.push(...rKeys);
     if (rBids && bids.length === 0) bids.push(...rBids);
     if (rFees && feePayments.length === 0) feePayments.push(...rFees);
+    if (rReviews && reviews.length === 0) reviews.push(...rReviews);
 
     _initialized = true;
     (globalThis as any).__storeInitialized = true;
@@ -148,6 +152,17 @@ export type FeeSummary = {
     blocked: boolean;
 };
 
+export type Review = {
+    id: string;
+    full_name: string;
+    reviewer: string;      // Stellar address (a verified buyer)
+    rating: number;        // 1–5
+    comment: string;
+    created_at: string;
+};
+
+export type Rating = { avg: number; count: number };
+
 export type Bid = {
     id: string;
     full_name: string;
@@ -181,6 +196,10 @@ const feePayments: FeePayment[] =
     (globalThis as any).__feePayments ??
     ((globalThis as any).__feePayments = loadJson<FeePayment[]>(FEES_FILE, []));
 
+const reviews: Review[] =
+    (globalThis as any).__reviews ??
+    ((globalThis as any).__reviews = loadJson<Review[]>(REVIEWS_FILE, []));
+
 // ── Monetized repos ───────────────────────────────────────────────────────────
 
 export function getRepos(): MonetizedReposStore { return repos; }
@@ -201,6 +220,30 @@ export function deleteRepo(full_name: string): void {
     delete repos[full_name];
     persist(REPOS_FILE, repos);
     redisSet(RK_REPOS, repos);
+    // Clear the repo's activity so re-listing starts with a clean slate
+    // (purchases + reviews/ratings) — makes test/demo cycles repeatable.
+    clearRepoActivity(full_name);
+}
+
+/** Remove all purchases and reviews tied to a repo (used on delist). */
+export function clearRepoActivity(full_name: string): void {
+    const pBefore = purchases.length;
+    for (let i = purchases.length - 1; i >= 0; i--) {
+        if (purchases[i].full_name === full_name) purchases.splice(i, 1);
+    }
+    if (purchases.length !== pBefore) {
+        persist(PURCHASES_FILE, purchases);
+        redisSet(RK_PURCHASES, purchases);
+    }
+
+    const rBefore = reviews.length;
+    for (let i = reviews.length - 1; i >= 0; i--) {
+        if (reviews[i].full_name === full_name) reviews.splice(i, 1);
+    }
+    if (reviews.length !== rBefore) {
+        persist(REVIEWS_FILE, reviews);
+        redisSet(RK_REVIEWS, reviews);
+    }
 }
 
 // ── Purchases ─────────────────────────────────────────────────────────────────
@@ -213,6 +256,56 @@ export function addPurchase(purchase: Purchase): void {
     purchases.unshift(purchase);
     persist(PURCHASES_FILE, purchases);
     redisSet(RK_PURCHASES, purchases);
+}
+
+/** Has this Stellar address purchased this repo? (verified-purchase check) */
+export function hasPurchased(full_name: string, address: string): boolean {
+    return purchases.some((p) => p.full_name === full_name && p.payer === address);
+}
+
+// ── Reviews & Ratings ─────────────────────────────────────────────────────────
+
+function aggregate(list: Review[]): Rating {
+    if (list.length === 0) return { avg: 0, count: 0 };
+    const sum = list.reduce((s, r) => s + r.rating, 0);
+    return { avg: Math.round((sum / list.length) * 10) / 10, count: list.length };
+}
+
+export function getReviews(full_name: string): Review[] {
+    return reviews.filter((r) => r.full_name === full_name);
+}
+
+export function getRepoRating(full_name: string): Rating {
+    return aggregate(getReviews(full_name));
+}
+
+/** Merchant rating = aggregate across every repo the owner sells (by GitHub login). */
+export function getMerchantRating(ownerLogin: string): Rating {
+    const prefix = ownerLogin.toLowerCase() + "/";
+    return aggregate(reviews.filter((r) => r.full_name.toLowerCase().startsWith(prefix)));
+}
+
+/** Add or update a reviewer's review for a repo (one per reviewer per repo). */
+export function upsertReview(input: { full_name: string; reviewer: string; rating: number; comment: string }): Review {
+    const rating = Math.max(1, Math.min(5, Math.round(input.rating)));
+    const existing = reviews.find((r) => r.full_name === input.full_name && r.reviewer === input.reviewer);
+    if (existing) {
+        existing.rating = rating;
+        existing.comment = input.comment;
+        existing.created_at = new Date().toISOString();
+    } else {
+        reviews.unshift({
+            id: crypto.randomUUID(),
+            full_name: input.full_name,
+            reviewer: input.reviewer,
+            rating,
+            comment: input.comment,
+            created_at: new Date().toISOString(),
+        });
+    }
+    persist(REVIEWS_FILE, reviews);
+    redisSet(RK_REVIEWS, reviews);
+    return reviews.find((r) => r.full_name === input.full_name && r.reviewer === input.reviewer)!;
 }
 
 // ── API Keys ──────────────────────────────────────────────────────────────────

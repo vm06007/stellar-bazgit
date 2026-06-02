@@ -115,6 +115,22 @@ const TOOLS = [
             },
         },
     },
+    {
+        type: "function",
+        function: {
+            name: "rate_repo",
+            description: "Leave a star rating and optional review for a repo the agent has purchased. Only works for repos bought with the agent's own Stellar wallet (verified purchase). Use when the user asks to rate, review, or leave stars on a repo.",
+            parameters: {
+                type: "object",
+                properties: {
+                    full_name: { type: "string", description: "owner/repo to rate, e.g. alice/my-toolkit" },
+                    rating: { type: "number", description: "star rating from 1 to 5" },
+                    comment: { type: "string", description: "optional short review text" },
+                },
+                required: ["full_name", "rating"],
+            },
+        },
+    },
 ];
 
 async function executeTool(
@@ -262,8 +278,25 @@ async function executeTool(
             return items.slice(0, 8).map((r: any) => {
                 const price = r.rules?.[0]?.price ?? "?";
                 const asset = r.rules?.[0]?.asset ?? "XLM";
-                return `- ${r.full_name}: ${price} ${asset} — ${baseUrl}/repo/${r.full_name}`;
+                const stars = r.rating?.count ? ` — ★${r.rating.avg} (${r.rating.count})` : "";
+                return `- ${r.full_name}: ${price} ${asset}${stars} — ${baseUrl}/repo/${r.full_name}`;
             }).join("\n");
+        }
+
+        if (name === "rate_repo") {
+            const { full_name, rating, comment } = args as any;
+            const stored = await getAgentWallet();
+            if (!stored) return "No agent wallet configured, so the agent hasn't purchased anything to review.";
+            const reviewer = Keypair.fromSecret(stored.secretKey).publicKey();
+
+            const res = await fetch(`${baseUrl}/api/reviews`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ full_name, reviewer, rating, comment: comment ?? "" }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) return `Could not rate ${full_name}: ${data.error ?? res.statusText}`;
+            return `Left a ${data.review?.rating ?? rating}-star review on ${full_name}. New average: ${data.rating?.avg} from ${data.rating?.count} review(s). See ${baseUrl}/repo/${full_name}`;
         }
 
         return `Unknown tool: ${name}`;
@@ -298,6 +331,7 @@ Rules:
 - After a successful listing, share the public page URL.
 - For purchases: confirm first, then call purchase_repo. If the wallet lacks funds, tell the user to send XLM or USDC to the wallet address.
 - Stellar payments settle in 2-5 seconds with sub-cent fees.
+- To rate or review a repo the agent bought, call rate_repo with a 1-5 rating (only works for repos purchased with the agent wallet).
 - Be concise. No markdown formatting (no backticks, bold, or bullet dashes). Plain text only.
 - When tool results contain URLs, output them as bare URLs so they become clickable links.`;
 

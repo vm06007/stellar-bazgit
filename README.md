@@ -25,6 +25,7 @@ The marketplace is staffed by the **🫖 TEE Agent** — your AI shopkeeper. "TE
   - [3b. Two payment paths: native + x402](#3b-two-payment-paths-native--standard-x402)
   - [4. The TEE Agent](#4-the-tee-agent)
   - [5. Platform fees](#5-platform-fees)
+  - [6. Reviews & merchant ratings](#6-reviews--merchant-ratings)
 - [Architecture](#architecture)
 - [TEE & Confidential Compute](#tee--confidential-compute)
 - [Tech Stack](#tech-stack)
@@ -259,6 +260,7 @@ flowchart TD
         T5[delist_repo]
         T6[make_repo_private]
         T7[get_purchases]
+        T8[rate_repo]
     end
 
     T3 -->|sign with agent's<br/>Stellar keypair| AgentWallet[(Agent Wallet<br/>secret key)]
@@ -295,6 +297,29 @@ flowchart TD
 | Collection | One-click Freighter payment to treasury address |
 
 Existing listings keep working — only **new** listings are gated. Fees are paid via the same one-click Freighter flow as purchases.
+
+### 6. Reviews & merchant ratings
+
+Buyers rate repos 1–5 stars. Crucially, **only verified buyers can review** — the server checks the reviewer's Stellar address against on-chain purchase records before accepting a rating. A **merchant's** overall rating is the aggregate of reviews across all the repos they sell.
+
+```mermaid
+flowchart TD
+    Buy[Buyer pays for repo<br/>payer = Stellar address] --> Rec[(Purchase record)]
+    Rec --> Gate{Address has<br/>a purchase?}
+    Review[POST /api/reviews<br/>rating + comment] --> Gate
+    Gate -->|no| Reject[403 — not a verified buyer]
+    Gate -->|yes| Save[(Save review)]
+    Save --> RepoR[⭐ Repo rating<br/>avg of its reviews]
+    Save --> MerchR[⭐ Merchant rating<br/>avg across all their repos]
+    RepoR --> Cat[Shown on catalog cards,<br/>repo page]
+    MerchR --> Pub[Shown on publisher profile]
+```
+
+Two ways to leave a review:
+- **In the UI** — on a repo page, connect Freighter and submit; your address proves you bought it.
+- **Via the TEE Agent** — after the agent buys a repo for you, just say *"leave 5 stars"*. The agent calls `rate_repo`, signing the review with the same wallet that made the purchase, and the new rating appears in the catalog.
+
+Ratings surface everywhere: **catalog cards**, the **repo detail page**, and the **publisher profile** (as the merchant's reputation).
 
 ---
 
@@ -437,6 +462,7 @@ flowchart LR
 | `/api/pay` | POST | Public | Verify a tx hash, mint token |
 | `/api/x402/[...path]` | GET | Public | **Standards-compliant x402 gateway** (402 + `X-PAYMENT`) |
 | `/api/purchases` | GET | Public | Purchase history per repo |
+| `/api/reviews` | GET/POST | Public | Verified-purchase reviews + ratings |
 | `/api/bids` | GET/POST/PATCH | Mixed | Make/manage offers |
 | `/api/fees` | GET/POST | Session | Fee summary + pay fee |
 | `/api/fees/prepare` | POST | Session | Build unsigned fee tx |

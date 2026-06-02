@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/app/components/SiteHeader";
+import { Stars } from "@/app/components/Stars";
 
 type CatalogEntry = {
     full_name: string;
@@ -14,6 +15,7 @@ type CatalogEntry = {
     mode: "flat" | "granular";
     rules: { path: string; price: string; asset: "XLM" | "USDC" }[];
     page_url: string;
+    rating?: { avg: number; count: number };
 };
 
 type GitHubUser = {
@@ -38,15 +40,18 @@ export default function PublisherPage({ params }: { params: Promise<{ owner: str
     const { owner } = use(params);
     const [repos, setRepos] = useState<CatalogEntry[]>([]);
     const [profile, setProfile] = useState<GitHubUser | null>(null);
+    const [rating, setRating] = useState<{ avg: number; count: number }>({ avg: 0, count: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([
             fetch(`/api/catalog?owner=${encodeURIComponent(owner)}`).then((r) => r.json()),
             fetch(`https://api.github.com/users/${owner}`).then((r) => r.ok ? r.json() : null),
-        ]).then(([repoData, userData]) => {
+            fetch(`/api/reviews?owner=${encodeURIComponent(owner)}`).then((r) => r.ok ? r.json() : null),
+        ]).then(([repoData, userData, reviewResp]) => {
             setRepos(Array.isArray(repoData) ? repoData : []);
             if (userData && !userData.message) setProfile(userData);
+            if (reviewResp?.rating) setRating(reviewResp.rating);
             setLoading(false);
         });
     }, [owner]);
@@ -54,7 +59,7 @@ export default function PublisherPage({ params }: { params: Promise<{ owner: str
     return (
         <div className="min-h-screen bg-zinc-950 text-white">
             <SiteHeader right={
-                <Link href="/catalog" className="text-sm text-zinc-400 hover:text-white transition-colors">← Catalog</Link>
+                <Link href="/bazaar" className="text-sm text-zinc-400 hover:text-white transition-colors">← Bazaar</Link>
             } />
 
             <main className="max-w-4xl mx-auto px-6 py-10">
@@ -62,7 +67,7 @@ export default function PublisherPage({ params }: { params: Promise<{ owner: str
                 <nav className="flex items-center gap-1.5 text-sm text-zinc-500 mb-8">
                     <Link href="/" className="hover:text-zinc-300 transition-colors">Home</Link>
                     <span>/</span>
-                    <Link href="/catalog" className="hover:text-zinc-300 transition-colors">catalog</Link>
+                    <Link href="/bazaar" className="hover:text-zinc-300 transition-colors">bazaar</Link>
                     <span>/</span>
                     <span className="text-zinc-300 font-mono">{owner}</span>
                 </nav>
@@ -93,6 +98,12 @@ export default function PublisherPage({ params }: { params: Promise<{ owner: str
                                         className="text-xs border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 px-2 py-0.5 rounded transition-colors">
                                         GitHub ↗
                                     </a>
+                                    {rating.count > 0 && (
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-950/30 border border-amber-900/50">
+                                            <Stars avg={rating.avg} count={rating.count} size={13} />
+                                            <span className="text-[10px] text-amber-500/70 uppercase tracking-wide">merchant</span>
+                                        </span>
+                                    )}
                                 </div>
                                 {profile.bio && <p className="text-zinc-400 text-sm mt-1">{profile.bio}</p>}
                                 <div className="flex flex-wrap items-center gap-4 mt-3">
@@ -179,6 +190,7 @@ export default function PublisherPage({ params }: { params: Promise<{ owner: str
                                         <div className="flex items-center gap-3 mt-1.5">
                                             {repo.language && <span className="text-xs text-zinc-600">{repo.language}</span>}
                                             {repo.stars > 0 && <span className="text-xs text-zinc-600">★ {repo.stars}</span>}
+                                            {repo.rating && repo.rating.count > 0 && <Stars avg={repo.rating.avg} count={repo.rating.count} size={12} />}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 shrink-0 ml-4">

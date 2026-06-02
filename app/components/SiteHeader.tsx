@@ -23,7 +23,7 @@ function ProfileDropdown() {
     if (!session) return null;
 
     return (
-        <div className="relative" ref={ref}>
+        <div className="relative z-50" ref={ref}>
             <button
                 onClick={() => setOpen((o) => !o)}
                 className="group flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer"
@@ -44,7 +44,7 @@ function ProfileDropdown() {
             </button>
 
             {open && (
-                <div className="absolute right-0 mt-1 w-52 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl py-1 z-50">
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl py-1 z-50">
                     <div className="px-4 py-2.5 border-b border-zinc-800">
                         <p className="text-xs text-zinc-500">Signed in as</p>
                         <p className="text-sm font-medium text-zinc-200 truncate">{session.user?.email ?? session.user?.name}</p>
@@ -84,7 +84,7 @@ export function SiteHeader({ right }: { right?: React.ReactNode }) {
     const { data: session } = useSession();
     return (
         <header
-            className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950/95 backdrop-blur-sm overflow-hidden"
+            className="sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950/95 backdrop-blur-sm overflow-visible"
             style={SITE_HEADER_STYLE}
         >
             <BrandLink />

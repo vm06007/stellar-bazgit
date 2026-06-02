@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/app/components/SiteHeader";
+import { Stars } from "@/app/components/Stars";
 import { AgentPanel, AgentFAB, CATALOG_AGENT_GREETING, CATALOG_AGENT_SUGGESTIONS } from "@/app/components/AgentPanel";
 
 type CatalogEntry = {
@@ -12,6 +13,7 @@ type CatalogEntry = {
     description: string | null;
     language: string | null;
     stars: number;
+    rating?: { avg: number; count: number };
     mode: "flat" | "granular";
     rules: { path: string; price: string; asset: "XLM" | "USDC" }[];
     gateway_url: string;
@@ -99,7 +101,7 @@ GET ${origin}/api/x402/alice/my-repo`;
                     <div className="flex gap-3 p-3 rounded-md bg-zinc-800/50 border border-zinc-700/50">
                         <span className="text-lg shrink-0">⚡</span>
                         <p className="text-xs text-zinc-400 leading-relaxed">
-                            The catalog is a <span className="text-zinc-200 font-medium">public, unauthenticated endpoint</span> — agents can discover all repos, prices, and Stellar addresses without credentials. Each entry includes everything needed to pay and clone autonomously.
+                            The bazaar is a <span className="text-zinc-200 font-medium">public, unauthenticated endpoint</span> — agents can discover all repos, prices, and Stellar addresses without credentials. Each entry includes everything needed to pay and clone autonomously.
                         </p>
                     </div>
                     <div className="rounded-md bg-zinc-950 border border-zinc-800 overflow-hidden">
@@ -137,7 +139,7 @@ GET ${origin}/api/x402/alice/my-repo`;
                         {mcpOpen && (
                             <div className="border-t border-zinc-800 px-3 py-3 space-y-3 bg-zinc-950/50">
                                 <p className="text-xs text-zinc-400 leading-relaxed">
-                                    Connect Stellar Bazgit to <span className="text-zinc-200 font-medium">Claude Desktop</span> via MCP — browse the catalog and manage listings without leaving the chat.
+                                    Connect Stellar Bazgit to <span className="text-zinc-200 font-medium">Claude Desktop</span> via MCP — browse the bazaar and manage listings without leaving the chat.
                                 </p>
                                 <ul className="text-xs text-zinc-500 space-y-1 pl-3">
                                     {([
@@ -183,30 +185,32 @@ export default function CatalogPage() {
     const [search, setSearch] = useState("");
     const [agentOpen, setAgentOpen] = useState(false);
 
-    useEffect(() => {
-        fetch("/api/catalog")
-            .then((r) => r.json())
-            .then(async (data) => {
-                const list: CatalogEntry[] = Array.isArray(data) ? data : [];
-                setEntries(list);
-                setLoading(false);
+    async function loadCatalog() {
+        try {
+            const data = await fetch("/api/catalog").then((r) => r.json());
+            const list: CatalogEntry[] = Array.isArray(data) ? data : [];
+            setEntries(list);
+            setLoading(false);
 
-                const owners = [...new Set(list.map((e) => e.full_name.split("/")[0]))];
-                const profiles = await Promise.all(
-                    owners.map((o) =>
-                        fetch(`https://api.github.com/users/${o}`)
-                            .then((r) => (r.ok ? r.json() : null))
-                            .catch(() => null)
-                    )
-                );
-                const map: Record<string, OwnerProfile> = {};
-                for (const p of profiles) {
-                    if (p && !p.message) map[p.login] = { login: p.login, name: p.name, avatar_url: p.avatar_url };
-                }
-                setOwnerProfiles(map);
-            })
-            .catch(() => setLoading(false));
-    }, []);
+            const owners = [...new Set(list.map((e) => e.full_name.split("/")[0]))];
+            const profiles = await Promise.all(
+                owners.map((o) =>
+                    fetch(`https://api.github.com/users/${o}`)
+                        .then((r) => (r.ok ? r.json() : null))
+                        .catch(() => null)
+                )
+            );
+            const map: Record<string, OwnerProfile> = {};
+            for (const p of profiles) {
+                if (p && !p.message) map[p.login] = { login: p.login, name: p.name, avatar_url: p.avatar_url };
+            }
+            setOwnerProfiles(map);
+        } catch {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => { loadCatalog(); }, []);
 
     const filtered = search.trim()
         ? entries.filter((e) =>
@@ -220,12 +224,12 @@ export default function CatalogPage() {
         <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <SiteHeader right={
-                <Link href="/catalog" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">Catalog</Link>
+                <Link href="/bazaar" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">Bazaar</Link>
             } />
 
             <main className="max-w-4xl mx-auto px-6 py-10 w-full">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Bazaar</h1>
                     <p className="text-zinc-400 mt-2">Private GitHub repos available to purchase with XLM or USDC on Stellar.</p>
                 </div>
 
@@ -308,7 +312,11 @@ export default function CatalogPage() {
                                         {entry.stars > 0 && <span className="text-xs text-zinc-500">★ {entry.stars}</span>}
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-zinc-800">
+                                    <div className="mt-auto pt-1">
+                                        <Stars avg={entry.rating?.avg ?? 0} count={entry.rating?.count ?? 0} />
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
                                         <span className="text-2xl font-bold text-white tracking-tight"><PriceBadge entry={entry} /></span>
                                         <Link href={entry.page_url} className="inline-flex items-center gap-1.5 text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -325,7 +333,7 @@ export default function CatalogPage() {
 
                 {!loading && entries.length > 0 && (
                     <p className="text-center text-xs text-zinc-700 mt-10">
-                        {filtered.length} of {entries.length} repo{entries.length !== 1 ? "s" : ""} in the catalog
+                        {filtered.length} of {entries.length} repo{entries.length !== 1 ? "s" : ""} in the bazaar
                     </p>
                 )}
             </main>
@@ -333,6 +341,7 @@ export default function CatalogPage() {
         {agentOpen && (
             <AgentPanel
                 onClose={() => setAgentOpen(false)}
+                onRefresh={loadCatalog}
                 suggestions={CATALOG_AGENT_SUGGESTIONS}
                 initialMessage={CATALOG_AGENT_GREETING}
             />

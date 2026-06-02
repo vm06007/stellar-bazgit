@@ -90,7 +90,7 @@ export default function Dashboard() {
         <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <header
-                className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950 overflow-hidden"
+                className="sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950 overflow-visible"
                 style={SITE_HEADER_STYLE}
             >
                 <BrandLink
@@ -112,10 +112,10 @@ export default function Dashboard() {
                         </p>
                     </div>
                     <Link
-                        href="/catalog"
+                        href="/bazaar"
                         className="shrink-0 flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 py-2 transition-colors"
                     >
-                        Browse Catalog
+                        Browse Bazaar
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                         </svg>
@@ -189,7 +189,7 @@ function ProfileDropdown({ session }: { session: ReturnType<typeof useSession>["
     }, []);
 
     return (
-        <div className="relative" ref={ref}>
+        <div className="relative z-50" ref={ref}>
             <button onClick={() => setOpen((o) => !o)}
                 className="group flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer self-stretch">
                 {session?.user?.image && (
@@ -208,7 +208,7 @@ function ProfileDropdown({ session }: { session: ReturnType<typeof useSession>["
             </button>
 
             {open && (
-                <div className="absolute right-0 -mt-[7px] w-56 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl py-1 z-50">
+                <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl py-1 z-50">
                     <div className="px-4 py-2.5 border-b border-zinc-800">
                         <p className="text-xs text-zinc-500">Signed in as</p>
                         <p className="text-sm font-medium text-zinc-200 truncate">{session?.user?.email ?? session?.user?.name}</p>
@@ -229,14 +229,14 @@ function ProfileDropdown({ session }: { session: ReturnType<typeof useSession>["
                             </svg>
                             Dashboard
                         </Link>
-                        <Link href="/catalog" onClick={() => setOpen(false)}
+                        <Link href="/bazaar" onClick={() => setOpen(false)}
                             className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="8" cy="6" r="2" /><path d="M12 6h8" />
                                 <circle cx="8" cy="12" r="2" /><path d="M12 12h8" />
                                 <circle cx="8" cy="18" r="2" /><path d="M12 18h8" />
                             </svg>
-                            Catalog
+                            Bazaar
                         </Link>
                     </div>
                     <div className="border-t border-zinc-800 py-1">
@@ -341,7 +341,7 @@ function RepoRow({ repo, monetized, onMadePrivate, onMonetize, onDemonetize }: {
         });
         setRemoving(false);
         if (!res.ok) toast.error("Failed to remove monetization");
-        else { onDemonetize(repo.full_name); toast.success(`"${repo.name}" removed from catalog`); }
+        else { onDemonetize(repo.full_name); toast.success(`"${repo.name}" removed from the bazaar`); }
     }
 
     function copyUrl() {

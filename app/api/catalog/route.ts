@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRepos, getRepoToken, initStore } from "@/lib/store";
+import { getRepos, getRepoToken, getRepoRating, initStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
     await initStore();
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
                 page_url: `/repo/${full_name}`,
                 stellarAddress: v.stellarAddress ?? null,
                 listing: v.listing ?? null,
+                rating: getRepoRating(full_name),
             };
 
             const ownerToken = getRepoToken(full_name);

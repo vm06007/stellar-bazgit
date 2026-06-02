@@ -10,6 +10,7 @@ import BuyButton from "@/app/components/BuyButton";
 import MonetizeModal, { type ExistingEntry } from "@/app/components/MonetizeModal";
 import { SiteHeader } from "@/app/components/SiteHeader";
 import { AgentPanel, AgentFAB, getRepoAgentGreeting, getRepoAgentSuggestions } from "@/app/components/AgentPanel";
+import { Stars, StarPicker } from "@/app/components/Stars";
 import { shortStellarAddress } from "@/lib/stellar";
 
 type CatalogEntry = {
@@ -54,6 +55,15 @@ type Purchase = {
     amount: string;
     asset: "XLM" | "USDC";
     paid_at: string;
+};
+
+type ReviewItem = {
+    id: string;
+    full_name: string;
+    reviewer: string;
+    rating: number;
+    comment: string;
+    created_at: string;
 };
 
 function timeAgo(iso: string): string {
@@ -200,6 +210,116 @@ function BargainPanel({ fullName, listingPrice, asset }: { fullName: string; lis
     );
 }
 
+function ReviewsSection({
+    fullName,
+    rating,
+    reviews,
+    onSubmitted,
+}: {
+    fullName: string;
+    rating: { avg: number; count: number };
+    reviews: ReviewItem[];
+    onSubmitted: () => void;
+}) {
+    const [stars, setStars] = useState(5);
+    const [comment, setComment] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    async function submit() {
+        try {
+            setBusy(true);
+            const { isConnected, requestAccess } = await import("@stellar/freighter-api");
+            const { isConnected: connected } = await isConnected();
+            if (!connected) {
+                toast.error("Freighter wallet not installed — get it at freighter.app", { duration: 7000 });
+                setBusy(false);
+                return;
+            }
+            const { address, error } = await requestAccess();
+            if (error || !address) throw new Error("Wallet connection rejected");
+
+            const res = await fetch("/api/reviews", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ full_name: fullName, reviewer: address, rating: stars, comment: comment.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error ?? "Could not submit review");
+                setBusy(false);
+                return;
+            }
+            toast.success("Review submitted — thanks!");
+            setComment("");
+            setOpen(false);
+            onSubmitted();
+        } catch (e: any) {
+            const msg: string = e?.message ?? "";
+            toast.error(msg.toLowerCase().includes("reject") ? "Wallet connection cancelled" : (msg || "Review failed"));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <div className="mt-10 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
+                    Reviews{rating.count > 0 && <span className="ml-2 normal-case tracking-normal font-normal"><Stars avg={rating.avg} count={rating.count} /></span>}
+                </h2>
+                {!open && (
+                    <button onClick={() => setOpen(true)}
+                        className="text-xs px-3 py-1.5 rounded-md border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                        ✎ Write a review
+                    </button>
+                )}
+            </div>
+
+            {open && (
+                <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-zinc-300">Your rating</p>
+                        <button onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-400 text-xs cursor-pointer">✕</button>
+                    </div>
+                    <StarPicker value={stars} onChange={setStars} />
+                    <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3}
+                        placeholder="Share what you thought of this repo…"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 resize-none" />
+                    <button onClick={submit} disabled={busy}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-sm font-semibold text-white transition-colors cursor-pointer disabled:cursor-not-allowed">
+                        {busy && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />}
+                        {busy ? "Verifying purchase…" : "Connect Freighter & submit"}
+                    </button>
+                    <p className="text-xs text-zinc-600 text-center">Only verified buyers can review — we check your Stellar address against on-chain purchases.</p>
+                </div>
+            )}
+
+            {reviews.length === 0 ? (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-8 text-center">
+                    <p className="text-zinc-600 text-sm">No reviews yet — buy it and be the first.</p>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {reviews.map((rev) => (
+                        <div key={rev.id} className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Stars avg={rev.rating} count={1} showCount={false} />
+                                    <span className="font-mono text-xs text-zinc-500">{shortStellarAddress(rev.reviewer)}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-950/40 text-cyan-500 border border-cyan-900/60">verified buyer</span>
+                                </div>
+                                <span className="text-xs text-zinc-600">{timeAgo(rev.created_at)}</span>
+                            </div>
+                            {rev.comment && <p className="text-sm text-zinc-400 mt-1.5">{rev.comment}</p>}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function Skeleton() {
     return (
         <div className="min-h-screen bg-zinc-950 text-white">
@@ -227,6 +347,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
     const [notFound, setNotFound] = useState(false);
     const [ownerProfile, setOwnerProfile] = useState<GitHubUser | null>(null);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
+    const [reviewData, setReviewData] = useState<{ rating: { avg: number; count: number }; reviews: ReviewItem[] }>({ rating: { avg: 0, count: 0 }, reviews: [] });
     const [editOpen, setEditOpen] = useState(false);
     const [agentOpen, setAgentOpen] = useState(false);
 
@@ -234,6 +355,13 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
         fetch(`/api/purchases?repo=${encodeURIComponent(full_name)}`)
             .then((r) => r.ok ? r.json() : [])
             .then((data) => { if (Array.isArray(data)) setPurchases(data); })
+            .catch(() => {});
+    }
+
+    function fetchReviews() {
+        fetch(`/api/reviews?repo=${encodeURIComponent(full_name)}`)
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => { if (data?.reviews) setReviewData(data); })
             .catch(() => {});
     }
 
@@ -245,11 +373,13 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
             }),
             fetch(`https://api.github.com/users/${owner}`).then((r) => r.ok ? r.json() : null),
             fetch(`/api/purchases?repo=${encodeURIComponent(full_name)}`).then((r) => r.ok ? r.json() : []),
-        ]).then(([catalogData, userData, purchaseData]) => {
+            fetch(`/api/reviews?repo=${encodeURIComponent(full_name)}`).then((r) => r.ok ? r.json() : null),
+        ]).then(([catalogData, userData, purchaseData, reviewResp]) => {
             if (catalogData && !catalogData.error) setEntry(catalogData);
             else if (!catalogData || catalogData.error) setNotFound(true);
             if (userData && !userData.message) setOwnerProfile(userData);
             if (Array.isArray(purchaseData)) setPurchases(purchaseData);
+            if (reviewResp?.reviews) setReviewData(reviewResp);
             setLoading(false);
         }).catch(() => { setNotFound(true); setLoading(false); });
     }, [full_name, owner]);
@@ -267,9 +397,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                 <main className="flex-1 flex flex-col items-center justify-center text-center px-6">
                     <p className="text-zinc-400 text-lg mb-2">Repository not found</p>
                     <p className="text-zinc-600 text-sm mb-6">
-                        <code className="font-mono">{full_name}</code> is not in the catalog.
+                        <code className="font-mono">{full_name}</code> is not in the bazaar.
                     </p>
-                    <Link href="/catalog" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">← Back to catalog</Link>
+                    <Link href="/bazaar" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">← Back to bazaar</Link>
                 </main>
             </div>
         );
@@ -286,7 +416,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
         <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
             <SiteHeader right={
-                <Link href="/catalog" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">← Catalog</Link>
+                <Link href="/bazaar" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">← Bazaar</Link>
             } />
 
             <main className="max-w-5xl mx-auto px-6 py-10 w-full">
@@ -294,7 +424,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                 <nav className="flex items-center gap-1.5 text-sm text-zinc-500 mb-8 flex-wrap">
                     <Link href="/" className="hover:text-zinc-300 transition-colors">Home</Link>
                     <span>/</span>
-                    <Link href="/catalog" className="hover:text-zinc-300 transition-colors">catalog</Link>
+                    <Link href="/bazaar" className="hover:text-zinc-300 transition-colors">bazaar</Link>
                     <span>/</span>
                     <Link href={`/publisher/${owner}`} className="hover:text-zinc-300 transition-colors font-mono">{owner}</Link>
                     <span>/</span>
@@ -317,6 +447,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                         )}
                     </div>
                     {entry.description && <p className="text-zinc-400 text-base mt-1">{entry.description}</p>}
+                    <div className="mt-2"><Stars avg={reviewData.rating.avg} count={reviewData.rating.count} size={16} /></div>
                     <div className="flex items-center gap-3 mt-3 flex-wrap">
                         {entry.language && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">{entry.language}</span>
@@ -567,8 +698,15 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
                     )}
                 </div>
 
+                <ReviewsSection
+                    fullName={entry.full_name}
+                    rating={reviewData.rating}
+                    reviews={reviewData.reviews}
+                    onSubmitted={fetchReviews}
+                />
+
                 <div className="mt-10 pt-6 border-t border-zinc-800">
-                    <Link href="/catalog" className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">← Back to catalog</Link>
+                    <Link href="/bazaar" className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">← Back to bazaar</Link>
                 </div>
             </main>
 
@@ -590,6 +728,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ owner: st
             <AgentPanel
                 onClose={() => setAgentOpen(false)}
                 context={{ repos: [{ full_name, name: entry.name, private: true }] }}
+                onRefresh={() => { fetchReviews(); fetchPurchases(); }}
                 suggestions={getRepoAgentSuggestions(entry.name)}
                 initialMessage={getRepoAgentGreeting(entry.name)}
                 inputPlaceholder="Ask about buying this repo…"
