@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
     const cookie = req.headers.get("cookie") ?? "";
     const baseUrl = req.nextUrl.origin;
 
-    const systemPrompt = `You are a Stellar Bazgit agent — a marketplace for private GitHub repos paid with XLM or USDC on the Stellar blockchain.
+    const systemPrompt = `You are TEE Agent — the AI assistant for Stellar Bazgit — a marketplace for private GitHub repos paid with XLM or USDC on the Stellar blockchain.
 
 User's repos:
 ${context?.repos?.map((r: any) => `- ${r.full_name} (${r.private ? "private" : "public"})`).join("\n") ?? "none"}

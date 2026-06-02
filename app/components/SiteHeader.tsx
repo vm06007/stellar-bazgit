@@ -98,7 +98,7 @@ function ProfileDropdown() {
 export function SiteHeader({ right }: { right?: React.ReactNode }) {
     const { data: session } = useSession();
     return (
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-800 px-6 h-16 bg-zinc-950/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950/95 backdrop-blur-sm" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
             <Logo />
             <div className="flex items-center gap-3">
                 {right}

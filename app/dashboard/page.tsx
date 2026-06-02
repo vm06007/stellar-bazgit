@@ -88,7 +88,7 @@ export default function Dashboard() {
     return (
         <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
-            <header className="sticky top-0 z-10 flex items-stretch justify-between border-b border-zinc-800 px-6 bg-zinc-950">
+            <header className="sticky top-0 z-10 flex items-stretch justify-between border-b border-zinc-800 px-6 bg-zinc-950" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
                 <Link href="/" className="group/logo flex items-center gap-2.5 py-4">
                     <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-md shadow-indigo-500/20">
                         <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

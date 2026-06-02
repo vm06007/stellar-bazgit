@@ -59,7 +59,7 @@ export function AgentPanel({
     onRefresh?: () => void;
 }) {
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { role: "assistant", content: "Hi! I can help you browse the catalog, find repos, or answer questions about Stellar Bazgit." },
+        { role: "assistant", content: "Hi! I'm TEE Agent — I can help you browse the catalog, find repos, purchase them with XLM or USDC, or answer questions about Stellar Bazgit." },
     ]);
     const [input, setInput] = useState("");
     const [thinking, setThinking] = useState(false);
@@ -101,14 +101,14 @@ export function AgentPanel({
     return (
         <aside className="w-[360px] flex flex-col border-l border-zinc-800 bg-zinc-950 shrink-0">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 border-b border-zinc-800 shrink-0 h-16">
+            <div className="flex items-center justify-between px-4 border-b border-zinc-800 shrink-0" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
                         </svg>
                     </div>
-                    <span className="text-sm font-medium text-zinc-200">Stellar Bazgit Agent</span>
+                    <span className="text-sm font-medium text-zinc-200">TEE Agent</span>
                     <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-cyan-900/20 text-cyan-400 border-cyan-800/40">
                         Stellar
                     </span>
@@ -125,7 +125,7 @@ export function AgentPanel({
                         {msg.role === "assistant" && (
                             <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
                                 <svg className="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
                                 </svg>
                             </div>
                         )}
@@ -143,7 +143,7 @@ export function AgentPanel({
                     <div className="flex justify-start">
                         <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 mr-2">
                             <svg className="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
                             </svg>
                         </div>
                         <div className="bg-zinc-800/80 border border-zinc-700/50 rounded-xl px-4 py-2.5 flex items-center gap-1">
@@ -202,10 +202,10 @@ export function AgentFAB({ onClick }: { onClick: () => void }) {
         >
             <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    <path d="M7 3h10l-2 6H9L7 3z" /><path d="M9 9h6l2 8H7l2-8z" /><path d="M5 20h14" />
                 </svg>
             </div>
-            Agent
+            TEE Agent
         </button>
     );
 }
