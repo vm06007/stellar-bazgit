@@ -1,10 +1,16 @@
-# 🫖 Stellar Bazgit
+# 🛒 Stellar Bazgit
 
 **The Stellar-native marketplace for private GitHub repositories.**
 
 Sell access to your private repos. Get paid in **XLM** or **USDC** on the [Stellar](https://stellar.org) network. Buyers pay once, get a time-limited `git clone` URL. AI agents can browse, buy, and list repos autonomously.
 
 > Think of it as a paywall gateway in front of any private GitHub repo — settlement in 2–5 seconds, sub-cent fees, no credit cards, no middlemen holding your money.
+
+### What's in a name?
+
+**Bazgit** = **Baz** (🛒 _basket_ / _bazaar_) + **git**. A bazaar — an open marketplace — for git repositories, where every repo is an item you can drop in the basket and check out with crypto. Pair it with **Stellar**, the network that settles every sale.
+
+The marketplace is staffed by the **🫖 TEE Agent** — your AI shopkeeper. "TEE" is a double play: it's served like a glass of Turkish _çay_ (tea), and it points at the **Trusted Execution Environment** where an agent's keys and signing can be hardware-isolated (see [TEE & Confidential Compute](#tee--confidential-compute)).
 
 ---
 
@@ -19,6 +25,7 @@ Sell access to your private repos. Get paid in **XLM** or **USDC** on the [Stell
   - [4. The TEE Agent](#4-the-tee-agent)
   - [5. Platform fees](#5-platform-fees)
 - [Architecture](#architecture)
+- [TEE & Confidential Compute](#tee--confidential-compute)
 - [Tech Stack](#tech-stack)
 - [API Reference](#api-reference)
 - [Project Structure](#project-structure)
@@ -51,7 +58,7 @@ flowchart LR
         GH[GitHub Account]
     end
 
-    subgraph Platform["🫖 Stellar Bazgit"]
+    subgraph Platform["🛒 Stellar Bazgit"]
         direction TB
         Dash[Dashboard]
         Cat[Public Catalog]
@@ -290,6 +297,53 @@ flowchart TB
 ```
 
 **State persistence:** File-based JSON in `.data/` (dev) with optional Upstash Redis mirror (production). No SQL database required.
+
+---
+
+## TEE & Confidential Compute
+
+The agent is called the **🫖 TEE Agent** for a reason. A **Trusted Execution Environment** is a hardware-isolated enclave where code runs and keys live such that *even the machine's operator cannot read them*. The CPU can produce a signed **attestation** proving exactly which code is running over which secrets.
+
+Stellar itself has **no native TEE** — it's a settlement and DEX layer, not a confidential-compute platform. So the TEE lives on the **operator side**, around the secrets this app must hold:
+
+```mermaid
+flowchart LR
+    subgraph Host["⚙️ App Server (untrusted)"]
+        App[Next.js API routes]
+    end
+
+    subgraph TEE["🔒 Trusted Execution Environment"]
+        direction TB
+        K1[GitHub token<br/>encryption key]
+        K2[Agent Stellar<br/>secret key]
+        Sign[Sign / decrypt<br/>inside enclave]
+    end
+
+    App -->|"encrypt(token) / sign(xdr)"| Sign
+    Sign -->|ciphertext / signed tx only| App
+    TEE -->|remote attestation| Verifier[Anyone can verify<br/>the agent's code + keys]
+```
+
+**What we'd protect:**
+
+| Secret | Today | With a TEE |
+|--------|-------|------------|
+| `TOKEN_ENCRYPTION_KEY` (decrypts GitHub tokens) | env var on the server | sealed in the enclave; host can't read it |
+| Agent's Stellar secret key | `.data/agent-wallet.json` | generated & signs **only** inside the enclave |
+| Treasury signing | manual | attested, autonomous payouts |
+
+**The pitch:** a TEE Agent can prove — via remote attestation — that the Stellar account it controls is operated *only* by audited code, with a key no human can exfiltrate. That's a genuinely trustless autonomous buyer/seller.
+
+**Implementation options (provider-agnostic):**
+
+- **AWS Nitro Enclaves** — what the original EVM prototype used. KMS-sealed key, PCR0 attestation, vsock channel between host and enclave. Cloud-centralized but battle-tested.
+- **Phala Network / Dstack** — decentralized TEE compute (Intel TDX/SGX) purpose-built for hosting AI agents and crypto key custody, with on-chain attestation. The most natural "Web3 TEE agent" fit.
+- **Marlin Oyster** — decentralized TEE coprocessor for serverless confidential workloads.
+- **Intel TDX / SGX directly** — roll your own enclave if you control the hardware.
+
+**Stellar-native angle:** while Stellar has no enclave primitive, a Soroban contract _could_ gate actions on a published TEE attestation hash — so the on-chain treasury only honours payouts from the attested agent identity. That ties the off-chain TEE guarantee to on-chain enforcement.
+
+> Status: the current build keeps keys in env/`.data` (standard for a hackathon). The architecture is deliberately shaped so the encrypt/sign operations are the *only* things touching secrets — making them a clean drop-in for any of the enclaves above.
 
 ---
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
+import { BrandLink, SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 import MonetizeModal, { type MonetizedEntry } from "@/app/components/MonetizeModal";
 import { AgentPanel, AgentFAB } from "@/app/components/AgentPanel";
 
@@ -88,18 +89,15 @@ export default function Dashboard() {
     return (
         <div className={`bg-zinc-950 text-white flex flex-row ${agentOpen ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`flex flex-col flex-1 min-w-0 ${agentOpen ? "overflow-y-auto" : ""}`}>
-            <header className="sticky top-0 z-10 flex items-stretch justify-between border-b border-zinc-800 px-6 bg-zinc-950" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
-                <Link href="/" className="group/logo flex items-center gap-2.5 py-4">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-md shadow-indigo-500/20">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                            <line x1="9" y1="9" x2="9.01" y2="9" />
-                            <line x1="15" y1="9" x2="15.01" y2="9" />
-                        </svg>
-                    </div>
-                    <span className="text-[24px] font-bold tracking-tight text-white transition-opacity duration-300 group-hover/logo:opacity-70">Stellar Bazgit</span>
-                </Link>
+            <header
+                className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950 overflow-hidden"
+                style={SITE_HEADER_STYLE}
+            >
+                <BrandLink
+                    logoSize="md"
+                    linkClassName="group/logo flex items-center gap-2.5"
+                    titleClassName="text-[24px] font-bold tracking-tight text-white transition-opacity duration-300 group-hover/logo:opacity-70"
+                />
                 <ProfileDropdown session={session} />
             </header>
 

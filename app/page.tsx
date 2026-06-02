@@ -3,6 +3,7 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { AppLogo } from "@/app/components/AppLogo";
 
 export default function Home() {
     const { data: session, status } = useSession();
@@ -10,46 +11,32 @@ export default function Home() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
             <div className="w-full max-w-md space-y-8 text-center">
-                <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-3">
-                        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-lg shadow-indigo-500/30">
-                            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                                <line x1="9" y1="9" x2="9.01" y2="9" />
-                                <line x1="15" y1="9" x2="15.01" y2="9" />
-                            </svg>
-                        </div>
+                <div className="space-y-4">
+                    <div className="flex flex-col items-center mt-8 gap-1">
+                        <AppLogo size="hero" priority />
                         <h1 className="text-[48px] font-bold tracking-tight text-white">
                             Stellar Bazgit
                         </h1>
                     </div>
-                    <p className="text-zinc-400 text-lg mt-2">
-                        Sell private repos. Get paid in XLM or USDC via Stellar.
+                    <p className="text-zinc-400 text-lg leading-relaxed">
+                        A bazaar for private GitHub repositories — buy and sell clone access, settled in XLM or USDC on Stellar chain.
                     </p>
                 </div>
 
-                <ul className="space-y-2 text-sm text-zinc-500 text-left max-w-xs mx-auto">
-                    <li className="flex items-center gap-2">
+                <ul className="w-full space-y-2 text-sm text-zinc-500 text-left">
+                    <li className="flex items-start gap-2">
                         <span className="text-cyan-500">→</span>
                         Connect GitHub, pick a repo to monetize
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-start gap-2">
                         <span className="text-cyan-500">→</span>
                         Set a price in XLM or USDC on Stellar
                     </li>
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-start gap-2">
                         <span className="text-cyan-500">→</span>
                         Buyers pay with any Stellar wallet — you get the clone URL
                     </li>
                 </ul>
-
-                <div className="flex items-center justify-center gap-2 text-xs text-zinc-600">
-                    <svg className="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                    <span>Powered by the Stellar network · 2-5s settlement · &lt;0.001 XLM fees</span>
-                </div>
 
                 {status === "authenticated" ? (
                     <div className="flex flex-col gap-3">
@@ -102,8 +89,13 @@ export default function Home() {
                         {status === "loading" ? "Loading..." : "Connect with GitHub"}
                     </button>
                 )}
-
-                <p className="text-xs text-zinc-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-zinc-600">
+                    <svg className="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span>Powered by the Stellar network · 2-5s settlement · &lt;0.001 XLM fees</span>
+                </div>
+                <p className="text-xs text-zinc-600 hidden">
                     We only request access to repos you explicitly choose to monetize.
                 </p>
             </div>

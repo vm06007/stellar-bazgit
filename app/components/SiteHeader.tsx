@@ -4,24 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
-
-function Logo() {
-    return (
-        <Link href="/" className="group/logo flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-md shadow-indigo-500/20">
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                    <line x1="9" y1="9" x2="9.01" y2="9" />
-                    <line x1="15" y1="9" x2="15.01" y2="9" />
-                </svg>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-white group-hover/logo:opacity-70 transition-opacity">
-                Stellar Bazgit
-            </span>
-        </Link>
-    );
-}
+import { BrandLink, SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 
 function ProfileDropdown() {
     const { data: session } = useSession();
@@ -100,8 +83,11 @@ function ProfileDropdown() {
 export function SiteHeader({ right }: { right?: React.ReactNode }) {
     const { data: session } = useSession();
     return (
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950/95 backdrop-blur-sm" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
-            <Logo />
+        <header
+            className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 bg-zinc-950/95 backdrop-blur-sm overflow-hidden"
+            style={SITE_HEADER_STYLE}
+        >
+            <BrandLink />
             <div className="flex items-center gap-3">
                 {right}
                 {session ? <ProfileDropdown /> : (

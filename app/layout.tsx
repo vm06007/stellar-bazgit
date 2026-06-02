@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
     title: "Stellar Bazgit — Buy & Sell GitHub Repos with Stellar",
     description: "Stellar Bazgit: the Stellar-native marketplace for private GitHub repositories. Pay with XLM or USDC.",
+    icons: {
+        icon: "/favicon.png",
+        apple: "/favicon.png",
+    },
 };
 
 export default function RootLayout({

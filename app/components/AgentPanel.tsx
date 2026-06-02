@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AgentWalletWidget } from "./AgentWalletWidget";
+import { SITE_HEADER_STYLE } from "@/app/components/AppLogo";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -101,7 +102,10 @@ export function AgentPanel({
     return (
         <aside className="w-[360px] flex flex-col border-l border-zinc-800 bg-zinc-950 shrink-0">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 border-b border-zinc-800 shrink-0" style={{ height: '73px', minHeight: '73px', maxHeight: '73px' }}>
+            <div
+                className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 overflow-hidden"
+                style={SITE_HEADER_STYLE}
+            >
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
