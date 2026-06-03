@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MermaidDiagram } from "@/app/components/MermaidDiagram";
 import { DIAGRAMS } from "@/app/components/diagrams";
 
-type ModalKey = "quickstart" | "how" | "agents" | "faq" | "about" | null;
+type ModalKey = "quickstart" | "how" | "agents" | "faq" | "about" | "slides" | null;
 
 // ─── Modal content ────────────────────────────────────────────────────────────
 
@@ -287,6 +287,48 @@ function Faq() {
     );
 }
 
+const SLIDES = ["/slides/slide1.jpg", "/slides/slide2.jpg", "/slides/slide3.jpg", "/slides/slide4.jpg", "/slides/slide5.jpg"];
+
+function Slides() {
+    const [i, setI] = useState(0);
+    const prev = () => setI((n) => (n - 1 + SLIDES.length) % SLIDES.length);
+    const next = () => setI((n) => (n + 1) % SLIDES.length);
+
+    useEffect(() => {
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "ArrowLeft") prev();
+            if (e.key === "ArrowRight") next();
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    return (
+        <div className="space-y-4">
+            <div className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={SLIDES[i]} alt={`Slide ${i + 1}`} className="w-full h-auto object-contain" />
+                <button onClick={prev} aria-label="Previous"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer transition-colors">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <button onClick={next} aria-label="Next"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer transition-colors">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+                <div className="absolute top-2 right-3 text-xs text-zinc-300 bg-black/60 rounded-full px-2 py-0.5">{i + 1} / {SLIDES.length}</div>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+                {SLIDES.map((_, n) => (
+                    <button key={n} onClick={() => setI(n)} aria-label={`Go to slide ${n + 1}`}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${n === i ? "w-6 bg-cyan-400" : "w-2 bg-zinc-600 hover:bg-zinc-500"}`} />
+                ))}
+            </div>
+            <p className="text-xs text-zinc-600 text-center">← → to navigate · <a href="/stellar_bazgit_pitchdeck.pdf" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:text-cyan-300 underline">Open full pitch deck (PDF) ↗</a></p>
+        </div>
+    );
+}
+
 function About() {
     return (
         <div className="space-y-4 text-sm text-zinc-400 leading-relaxed">
@@ -309,12 +351,14 @@ const MODALS: Record<Exclude<ModalKey, null>, { title: string; subtitle: string;
     agents: { title: "For Agents", subtitle: "Machine-to-machine commerce on Stellar", body: <ForAgents /> },
     faq: { title: "FAQ", subtitle: "Common questions", body: <Faq /> },
     about: { title: "About Stellar Bazgit", subtitle: "A bazaar for git repositories", body: <About /> },
+    slides: { title: "Slides", subtitle: "Pitch deck walkthrough", body: <Slides />, wide: true },
 };
 
 const NAV: { key: Exclude<ModalKey, null>; label: string }[] = [
     { key: "quickstart", label: "Quick Start" },
     { key: "how", label: "How it works" },
     { key: "agents", label: "For Agents" },
+    { key: "slides", label: "Slides" },
     { key: "faq", label: "FAQ" },
 ];
 
