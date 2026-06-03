@@ -4,12 +4,13 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { AppLogo } from "@/app/components/AppLogo";
+import { LandingChrome } from "@/app/components/LandingChrome";
 
 export default function Home() {
     const { data: session, status } = useSession();
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
+        <LandingChrome>
             <div className="w-full max-w-md space-y-8 text-center">
                 <div className="space-y-4">
                     <div className="flex flex-col items-center mt-8 gap-1">
@@ -112,6 +113,6 @@ export default function Home() {
                     We only request access to repos you explicitly choose to monetize.
                 </p>
             </div>
-        </div>
+        </LandingChrome>
     );
 }
